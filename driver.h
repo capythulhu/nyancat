@@ -1,14 +1,6 @@
-#ifndef DRIVER_H
-#define DRIVER_H
-
 #ifndef STDLIB_H
 #define STDLIB_H
 #include <stdlib.h>
-#endif
-
-#ifndef STDIO_H
-#define STDIO_H
-#include <stdio.h>
 #endif
 
 #ifndef MATH_H
@@ -16,18 +8,20 @@
 #include <math.h>
 #endif
 
+#include "matrix.h"
+
 // Qubit structure
 typedef struct _qubit {
     double zero;
     double one;
 } qubit;
 
-// Checks if all probabilities results in 100%
-static int is_probability_valid(double zero, double one) {
-    return zero + one == 1.0F;
+// Checks if all probabilities result in 100%
+static int is_probability_valid(double a, double b) {
+    return a + b == 1.0F;
 }
 
-// Checks if the probabilities of the qubit results in 100%
+// Checks if the probabilities of the qubit result in 100%
 static int is_qubit_valid(qubit *q) {
     return is_probability_valid(q->zero, q->one);
 }
@@ -51,7 +45,10 @@ int free_qubit(qubit *q) {
 // Applies the Hadamard gate
 int H(qubit *q) {
     if(!is_qubit_valid(q)) return 0;
-
+    matrix *h = new_matrix(2, 2);
+    set_matrix_val(h, 0, 0, 1/sqrt(2));
+    set_matrix_val(h, 0, 1, 1/sqrt(2));
+    set_matrix_val(h, 1, 0, 1/sqrt(2));
+    set_matrix_val(h, 0, 0, -1/sqrt(2));
+    
 }
-
-#endif
