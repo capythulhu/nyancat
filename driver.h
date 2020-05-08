@@ -18,7 +18,7 @@ typedef struct _qubit {
 
 // Checks if all probabilities result in 100%
 static int is_probability_valid(double a, double b) {
-    return a + b == 1.0F;
+    return (a * a) + (b * b) == 1.0F;
 }
 
 // Checks if the probabilities of the qubit result in 100%
@@ -45,10 +45,18 @@ int free_qubit(qubit *q) {
 // Applies the Hadamard gate
 int H(qubit *q) {
     if(!is_qubit_valid(q)) return 0;
-    matrix *h = new_matrix(2, 2);
-    set_matrix_val(h, 0, 0, 1/sqrt(2));
-    set_matrix_val(h, 0, 1, 1/sqrt(2));
-    set_matrix_val(h, 1, 0, 1/sqrt(2));
-    set_matrix_val(h, 0, 0, -1/sqrt(2));
-    
+    matrix *a = new_matrix(2, 2);
+    set_matrix_val(a, 0, 0, 1/sqrt(2));
+    set_matrix_val(a, 0, 1, 1/sqrt(2));
+    set_matrix_val(a, 1, 0, 1/sqrt(2));
+    set_matrix_val(a, 1, 1, -1/sqrt(2));
+    matrix *b = new_matrix(2, 1);
+    set_matrix_val(b, 0, 0, q->zero);
+    set_matrix_val(b, 1, 0, q->one);
+    matrix *c = multiply_matrix(a, b);
+    q->zero = get_matrix_val(c, 0, 0);
+    q->one = get_matrix_val(c, 1, 0);
+    free(a);
+    free(b);
+    free(c);
 }
