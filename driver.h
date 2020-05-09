@@ -99,9 +99,9 @@ char *show_percentages(driver *d, int addr) {
 }
 
 // Applies the Hadamard gate
-int H(driver *d, int addr) {
+bool H(driver *d, int addr) {
     qubit *q = get_qubit(d, addr);
-    if(!is_qubit_valid(*q)) return 0;
+    if(!is_qubit_valid(*q)) return false;
     matrix *a = new_matrix(2, 2);
     set_matrix_val(a, 0, 0, 1/sqrt(2));
     set_matrix_val(a, 0, 1, 1/sqrt(2));
@@ -114,6 +114,7 @@ int H(driver *d, int addr) {
     free(a);
     free(b);
     free(c);
+    return true;
 }
 
 // Applies the Measurement gate
