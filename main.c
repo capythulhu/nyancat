@@ -26,6 +26,8 @@ int main(void) {
     printf("q1: %s\n%s\n", show_qubit(d, q1), show_percentages(d, q1));
     printf("q2: %s\n%s\n", show_qubit(d, q2), show_percentages(d, q2));
 
+    printf("\n");
+
     // Measures qubits
     int b1 = M(d, q1);
     int b2 = M(d, q2);

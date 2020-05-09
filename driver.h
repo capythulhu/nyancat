@@ -69,7 +69,8 @@ int allocate_qubit(driver *d) {
     int i = 0;
     while(d->mem[i] && i < d->capacity) i++;
     if(i >= d->capacity) return -1;
-    d->mem[i] = new_qubit(ZERO);
+    d->mem[i] = malloc(sizeof(qubit));
+    *d->mem[i] = ZERO;
     return i;
 }
 
@@ -106,9 +107,7 @@ int H(driver *d, int addr) {
     set_matrix_val(a, 0, 1, 1/sqrt(2));
     set_matrix_val(a, 1, 0, 1/sqrt(2));
     set_matrix_val(a, 1, 1, -1/sqrt(2));
-    matrix *b = new_matrix(2, 1);
-    set_matrix_val(b, 0, 0, q->zero);
-    set_matrix_val(b, 1, 0, q->one);
+    matrix *b = qubit_to_matrix(*q);
     matrix *c = multiply_matrix(a, b);
     q->zero = get_matrix_val(c, 0, 0);
     q->one = get_matrix_val(c, 1, 0);

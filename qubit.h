@@ -27,14 +27,15 @@ typedef struct _qubit {
 // Checks if the probabilities of the qubit result in 100%
 int is_qubit_valid(qubit q) {
     double sum = (q.zero * q.zero) + (q.one * q.one);
-    return sum <= 1.0F + PROBABILITY_ERROR || sum >= 1.0F - PROBABILITY_ERROR ;
+    return sum <= 1.0F + PROBABILITY_ERROR || sum >= 1.0F - PROBABILITY_ERROR;
 }
 
-// Allocates a new qubit
-qubit *new_qubit(qubit q) {
-    if(!is_qubit_valid(q)) return NULL;
-    qubit *o = (qubit*)malloc(sizeof(qubit));
-    *o = q;
+// Transforms the qubit into a matrix with it's eigenvalues
+matrix *qubit_to_matrix(qubit q) {
+    matrix *m = new_matrix(2, 1);
+    set_matrix_val(m, 0, 0, q.zero);
+    set_matrix_val(m, 1, 0, q.one);
+    return m;
 }
 
 #endif
