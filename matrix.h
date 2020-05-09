@@ -50,6 +50,7 @@ int free_matrix(matrix *m) {
     return 1;
 }
 
+// Multiplies two matrices and return a third one
 matrix *multiply_matrix(matrix *m, matrix *n) {
     if(m->columns != n->rows) return NULL;
     matrix *r = new_matrix(m->rows, n->columns);
@@ -67,6 +68,8 @@ matrix *multiply_matrix(matrix *m, matrix *n) {
     return r;
 }
 
+/*
+// Prints matrix
 void print_matrix(matrix *m) {
     int i, j;
     for(i = 0; i < m->rows; i++) {
@@ -76,6 +79,6 @@ void print_matrix(matrix *m) {
         }
         printf("|\n");
     }
-}
+*/
 
 #endif

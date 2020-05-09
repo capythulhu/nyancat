@@ -1,24 +1,36 @@
-#ifndef STDLIB_H
 #define STDLIB_H
 #include <stdlib.h>
-#endif
 
-#ifndef STDIO_H
 #define STDIO_H
 #include <stdio.h>
-#endif
 
 #include "driver.h"
 
 int main(void) {
-  
-    qubit *a = new_qubit(0, 1);
-    qubit *b = new_qubit(1, 0);
-    printf("Is qubit A valid? %s\n", a ? "true" : "false");
-    printf("Is qubit B valid? %s\n", b ? "true" : "false");
-    H(a);
-    H(b);
-    printf("%lf, %lf\n", a->zero, a->one);
-    printf("%lf, %lf\n", b->zero, b->one);
-    
+    // New driver
+    driver *d = new_driver(2);
+
+    // Allocates qubits
+    int q1 = allocate_qubit(d);
+    int q2 = allocate_qubit(d);
+
+    // Initializes qubits
+    set_qubit(d, q1, ZERO);
+    set_qubit(d, q2, ONE);
+
+    // Puts qubits in superposition
+    H(d, q1);
+    H(d, q2);
+
+    // Prints qubits
+    printf("q1: %s\n%s\n", show_qubit(d, q1), show_percentages(d, q1));
+    printf("q2: %s\n%s\n", show_qubit(d, q2), show_percentages(d, q2));
+
+    // Measures qubits
+    int b1 = M(d, q1);
+    int b2 = M(d, q2);
+
+    // Prints bits
+    printf("b1: %i\n", b1);
+    printf("b2: %i\n", b2);
 }

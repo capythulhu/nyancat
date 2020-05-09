@@ -1,6 +1,29 @@
+#ifndef DRIVER_H
+#define DRIVER_H
+
 #ifndef STDLIB_H
 #define STDLIB_H
 #include <stdlib.h>
+#endif
+
+#ifndef STDIO_H
+#define STDIO_H
+#include <stdio.h>
+#endif
+
+#ifndef STDBOOL_H
+#define STDBOOL_H
+#include <stdbool.h>
+#endif
+
+#ifndef LIMITS_H
+#define LIMITS_H
+#include <limits.h>
+#endif
+
+#ifndef TIME_H
+#define TIME_H
+#include <time.h>
 #endif
 
 #ifndef MATH_H
@@ -8,43 +31,76 @@
 #include <math.h>
 #endif
 
-#include "matrix.h"
+#include "qubit.h"
 
-// Qubit structure
-typedef struct _qubit {
-    double zero;
-    double one;
-} qubit;
+// Driver structure
+typedef struct _driver {
+    qubit **mem;
+    unsigned capacity;
+    unsigned used;
+} driver;
 
-// Checks if all probabilities result in 100%
-static int is_probability_valid(double a, double b) {
-    return (a * a) + (b * b) == 1.0F;
+// Creates a new driver
+driver *new_driver(int capacity) {
+    driver *d = malloc(sizeof(driver));
+    d->mem = calloc(sizeof(qubit*), capacity);
+    d->capacity = capacity;
+    d->used = 0;
+    srand(time(NULL));
+    return d;
 }
 
-// Checks if the probabilities of the qubit result in 100%
-static int is_qubit_valid(qubit *q) {
-    return is_probability_valid(q->zero, q->one);
+// Gets a qubit from a driver
+qubit *get_qubit(driver *d, int addr) {
+    if(!d || addr >= d->capacity || addr < 0) return NULL;
+    return d->mem[addr];
 }
 
-// Allocates a new qubit
-qubit *new_qubit(double zero, double one) {
-    if(!is_probability_valid(zero, one)) return NULL;
-    qubit *q = (qubit*)malloc(sizeof(qubit));
-    q->zero = zero;
-    q->one = one;
+// Sets a qubit of a driver
+bool set_qubit(driver *d, int addr, qubit q) {
+    if(!is_qubit_valid || !d || addr >= d->capacity || addr < 0) return false;
+    *(d->mem[addr]) = q;
+    return true;
 }
 
-// Frees a qubit
-int free_qubit(qubit *q) {
-    if(!q) return 0;
-    free(q);
-    q = NULL;
-    return 1;
+// Allocates a qubit in driver
+int allocate_qubit(driver *d) {
+    if(d->used >= d->capacity) return -1;
+    int i = 0;
+    while(d->mem[i] && i < d->capacity) i++;
+    if(i >= d->capacity) return -1;
+    d->mem[i] = new_qubit(ZERO);
+    return i;
+}
+
+// Frees a qubit in driver
+bool free_qubit(driver *d, int addr) {
+    if(d->used <= 0) return false;
+    free(d->mem[addr]);
+    d->mem[addr] = NULL;
+    return true;
+}
+
+// Prints qubits eigenvalues
+char *show_qubit(driver *d, int addr) {
+    qubit q = *get_qubit(d, addr);
+    char *a = malloc(sizeof(char) * (1<<8));
+    sprintf(a, "(%lf, %lf)", q.zero, q.one);
+    return a;
+}
+
+// Prints qubits eigenstates chances
+char *show_percentages(driver *d, int addr) {
+    qubit q = *get_qubit(d, addr);
+    char *a = malloc(sizeof(char) * (1<<8));
+    sprintf(a, "|0> = %.2lf%%, |1> = %.2lf%%", q.zero * q.zero * 100, q.one * q.one * 100);
+    return a;
 }
 
 // Applies the Hadamard gate
-int H(qubit *q) {
-    if(!is_qubit_valid(q)) return 0;
+int H(driver *d, int addr) {
+    qubit *q = get_qubit(d, addr);
+    if(!is_qubit_valid(*q)) return 0;
     matrix *a = new_matrix(2, 2);
     set_matrix_val(a, 0, 0, 1/sqrt(2));
     set_matrix_val(a, 0, 1, 1/sqrt(2));
@@ -60,3 +116,16 @@ int H(qubit *q) {
     free(b);
     free(c);
 }
+
+// Applies the Measurement gate
+int M(driver *d, int addr) {
+    qubit *q = get_qubit(d, addr);
+    if(!is_qubit_valid(*q)) return -1;
+    // Jumps one number in the stream to avoid repetition
+    rand();
+    int bit = (double)rand() / RAND_MAX > pow(q->zero, 2);
+    set_qubit(d, addr, bit ? ONE : ZERO);
+    return bit;
+}
+
+#endif
