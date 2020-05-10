@@ -35,4 +35,8 @@ int main(void) {
     // Prints bits
     printf("b1: %i\n", b1);
     printf("b2: %i\n", b2);
+
+    // Frees qubits on driver
+    free_qubit(d, q1);
+    free_qubit(d, q2);
 }

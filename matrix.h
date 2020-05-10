@@ -11,6 +11,16 @@
 #include <stdio.h>
 #endif
 
+#ifndef STDBOOL_H
+#define STDBOOL_H
+#include <stdbool.h>
+#endif
+
+#ifndef STDARG_H
+#define STDARG_H
+#include <stdarg.h>
+#endif
+
 // Matrix structure
 typedef struct _matrix {
     double *vals;
@@ -40,6 +50,24 @@ int set_matrix_val(matrix *m, int row, int column, double val) {
     m->vals[row * m->columns + column] = val;
     return 1;
 }
+
+// Fills a matrix with provided values
+bool populate_matrix(matrix *m, double arg, ...) {
+    if(!m) return false;
+    va_list ap;
+    int i, j;
+    va_start(ap, arg); 
+    double k = arg;
+    for (i = 0; i < m->rows; i++) {
+        for (j = 0; j < m->columns; j++) {
+            set_matrix_val(m, i, j, k);
+            k = va_arg(ap, double);
+        }
+    }
+    va_end(ap);
+    return true;
+}
+
 
 // Frees matrix
 int free_matrix(matrix *m) {
