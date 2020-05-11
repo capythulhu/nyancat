@@ -4,39 +4,25 @@
 #define STDIO_H
 #include <stdio.h>
 
-#include "driver.h"
+#include "catbox/driver.h"
 
 int main(void) {
     // New driver
-    driver *d = new_driver(2);
+    driver *d = new_driver(1);
 
-    // Allocates qubits
-    int q1 = allocate_qubit(d);
-    int q2 = allocate_qubit(d);
+    // Simple algorithm to set a qubit to the int 'q'
+    int q = 0;
+    command alg_setQubit[] = 
+    { 
+        X(0),
+        CMP(0, q),
+        JNE(0),
+        M(0),
+        MOV(0, 0),
+        END(0)
+    };
 
-    // Initializes qubits
-    set_qubit(d, q1, ZERO);
-    set_qubit(d, q2, ONE);
+    process_algorithm(d, alg_setQubit, false);
 
-    // Puts qubits in superposition
-    H(d, q1);
-    H(d, q2);
-
-    // Prints qubits
-    printf("q1: %s\n%s\n", show_qubit(d, q1), show_percentages(d, q1));
-    printf("q2: %s\n%s\n", show_qubit(d, q2), show_percentages(d, q2));
-
-    printf("\n");
-
-    // Measures qubits
-    int b1 = M(d, q1);
-    int b2 = M(d, q2);
-
-    // Prints bits
-    printf("b1: %i\n", b1);
-    printf("b2: %i\n", b2);
-
-    // Frees qubits on driver
-    free_qubit(d, q1);
-    free_qubit(d, q2);
+    printf("Result: %i", d->cache[0]);
 }

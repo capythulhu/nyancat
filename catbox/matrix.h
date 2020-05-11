@@ -51,17 +51,30 @@ int set_matrix_val(matrix *m, int row, int column, double val) {
     return 1;
 }
 
+// Prints matrix
+void print_matrix(matrix *m) {
+    int i, j;
+    for(i = 0; i < m->rows; i++) {
+        printf("| ");
+        for(j = 0; j < m->columns; j++) {
+            printf("%10f ", get_matrix_val(m, i, j));
+        }
+        printf("|\n");
+    }
+}
+
 // Fills a matrix with provided values
-bool populate_matrix(matrix *m, double arg, ...) {
+bool populate_matrix(matrix *m, ...) {
     if(!m) return false;
     va_list ap;
-    int i, j;
-    va_start(ap, arg); 
-    double k = arg;
+    va_start(ap, m);
+
+    int i, j; 
+    double k;
     for (i = 0; i < m->rows; i++) {
         for (j = 0; j < m->columns; j++) {
-            set_matrix_val(m, i, j, k);
             k = va_arg(ap, double);
+            set_matrix_val(m, i, j, k);
         }
     }
     va_end(ap);
@@ -95,18 +108,5 @@ matrix *multiply_matrix(matrix *m, matrix *n) {
     }
     return r;
 }
-
-/*
-// Prints matrix
-void print_matrix(matrix *m) {
-    int i, j;
-    for(i = 0; i < m->rows; i++) {
-        printf("| ");
-        for(j = 0; j < m->columns; j++) {
-            printf("%f ", get_matrix_val(m, i, j));
-        }
-        printf("|\n");
-    }
-*/
 
 #endif
