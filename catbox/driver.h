@@ -34,30 +34,38 @@
 #include "qubit.h"
 #include "operations.h"
 
-#define CACHE_SIZE 4
-#define RESERVED_REGS 2
+#define RESERVED_REGS 3
 
 // Driver structure
 typedef struct _driver {
     qubit       *qregs;
     char        *cregs;
-    char        cache[CACHE_SIZE];
     unsigned    qtotal;
+    unsigned    ctotal;
     unsigned    pointer;
 } driver;
 
 // Creates a new driver
-driver *new_driver(unsigned qtotal) {
+driver *new_driver(unsigned qtotal, unsigned ctotal) {
     driver *d = malloc(sizeof(driver));
     d->qtotal = qtotal;
+    d->ctotal = ctotal;
     d->qregs = malloc(sizeof(qubit) * d->qtotal);
-    d->cregs = calloc(sizeof(char), RESERVED_REGS);
+    d->cregs = calloc(sizeof(char), d->ctotal + RESERVED_REGS);
     d->pointer = 0;
     int i;
-    for(i = 0; i < CACHE_SIZE; i++) d->cache[i] = 0;
     for(i = 0; i < d->qtotal; i++) d->qregs[i] = ZERO;
     srand(time(NULL));
     return d;
+}
+
+// Frees a new driver
+bool free_driver(driver *d) {
+    if(!d) return false;
+    free(d->cregs);
+    free(d->qregs);
+    free(d);
+    return true;
 }
 
 // Checks if a qubit has been allocated
@@ -127,63 +135,63 @@ bool process_command(driver *d, command c) {
     if(!d) return false;
     switch(c.op) {
         case OP_END:
-            d->cregs[3] = c.args[0];
+            d->cregs[0] = d->cregs[c.args[0]];
             return false;
         case OP_CMP:
-            d->cregs[1] = apply_M(d, c.args[0]);
-            d->cregs[0] = d->cregs[1] >= 0 ? 
-            d->cregs[1] > c.args[1] ? 1
-            : d->cregs[1] < c.args[1] ? -1
+            d->cregs[2] = apply_M(d, c.args[0]);
+            d->cregs[1] = d->cregs[2] >= 0 ? 
+            d->cregs[2] > c.args[1] ? 1
+            : d->cregs[2] < c.args[1] ? -1
             : 0 
             : -2;
             d->pointer++;
             return true;
         case OP_MOV:
-            d->cache[c.args[1]] = d->cregs[c.args[0]];
+            d->cregs[c.args[1]] = d->cregs[c.args[0]];
             d->pointer++;
             return true;
         case OP_JE:
-            if(d->cregs[0] == 0) d->pointer = c.args[1]; 
+            if(d->cregs[1] == 0) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JNE:
-            if(d->cregs[0] != 0) d->pointer = c.args[1]; 
+            if(d->cregs[1] != 0) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JG:
-            if(d->cregs[0] == 1) d->pointer = c.args[1]; 
+            if(d->cregs[1] == 1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JGE:
-            if(d->cregs[0] == 0 || d->cregs[0] == 1) d->pointer = c.args[1]; 
+            if(d->cregs[1] == 0 || d->cregs[1] == 1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JL:
-            if(d->cregs[0] == -1) d->pointer = c.args[1]; 
+            if(d->cregs[1] == -1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JLE:
-            if(d->cregs[0] == 0 || d->cregs[0] == -1) d->pointer = c.args[1]; 
+            if(d->cregs[1] == 0 || d->cregs[1] == -1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_M:
-            d->cregs[0] = apply_M(d, c.args[0]);
+            d->cregs[1] = apply_M(d, c.args[0]);
             d->pointer++;
             return true;
         case OP_H:
-            d->cregs[0] = apply_H(d, c.args[0]);
+            d->cregs[1] = apply_H(d, c.args[0]);
             d->pointer++;
             return true;
         case OP_X:
-            d->cregs[0] = apply_X(d, c.args[0]);
+            d->cregs[1] = apply_X(d, c.args[0]);
             d->pointer++;
             return true;
         case OP_Y:
-            d->cregs[0] = apply_Y(d, c.args[0]);
+            d->cregs[1] = apply_Y(d, c.args[0]);
             d->pointer++;
             return true;
         case OP_Z:
-            d->cregs[0] = apply_Z(d, c.args[0]);
+            d->cregs[1] = apply_Z(d, c.args[0]);
             d->pointer++;
             return true;
     }
@@ -197,9 +205,7 @@ void process_algorithm(driver *d, command *alg, bool echo) {
     do {
         i = process_command(d, alg[d->pointer]);
     } while(i == true);
-    if(echo) printf("Algorithm finished with return code %i.\n", d->cregs[3]);
-    free(d->qregs);
-    free(d->cregs);
+    if(echo) printf("Algorithm finished with return code %i.", d->cregs[0]);
 }
 
 #endif

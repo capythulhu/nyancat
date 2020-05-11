@@ -24,8 +24,8 @@ enum operation {
     OP_Z
 };
 
-#define END(val)            ((command){OP_END,  {val}})
-#define MOV(caddr, addr)    ((command){OP_MOV,  {caddr, addr}})
+#define END(addr)           ((command){OP_END,  {addr}})
+#define MOV(addr1, addr2)   ((command){OP_MOV,  {addr1, addr2}})
 #define CMP(qaddr, val)     ((command){OP_CMP,  {qaddr, val}})
 #define JE(val)             ((command){OP_JE,   {val}})
 #define JNE(val)            ((command){OP_JNE,  {val}})
