@@ -4,7 +4,7 @@
 #define STDIO_H
 #include <stdio.h>
 
-#include "catbox/driver.h"
+#include "nyan-cat/driver.h"
 
 int main(void) {
     // New driver
@@ -12,7 +12,9 @@ int main(void) {
 
     command alg_setQubit[] = 
     {
-        END(0)
+        X(2),
+        PUT(REG(2), 5),
+        END(REG(2))
     };
 
     process_algorithm(d, alg_setQubit, true);

@@ -29,6 +29,12 @@ typedef struct _qubit {
 #define ZERO (qubit){1.0F, 0.0F}
 #define ONE (qubit){0.0F, 1.0F}
 
+// Checks if qubit's eigenvalues are 100% in total
+bool valid_qubit(qubit q) {
+    double sum = pow(q.zero, 2) + pow(q.one, 2);
+    return sum >= 1 - PROBABILITY_ERROR && sum <= 1 + PROBABILITY_ERROR;
+}
+
 // Transforms the qubit into a matrix with it's eigenvalues
 matrix *qubit_to_matrix(qubit q) {
     matrix *m = new_matrix(2, 1);

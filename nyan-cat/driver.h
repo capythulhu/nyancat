@@ -33,8 +33,10 @@
 
 #include "qubit.h"
 #include "operations.h"
+#include "errors.h"
 
-#define RESERVED_REGS 3
+#define RESERVED_REGS 2
+#define REG(addr) (RESERVED_REGS + addr)
 
 // Driver structure
 typedef struct _driver {
@@ -68,61 +70,90 @@ bool free_driver(driver *d) {
     return true;
 }
 
-// Checks if a qubit has been allocated
-bool valid_qubit(driver *d, int addr) {
-    return addr >= 0 && d && d->qregs != NULL;
+// Checks if a qubit register has been allocated
+bool valid_qreg(driver *d, int addr) {
+    return addr >= 0 && addr < d->qtotal && d->qregs != NULL;
+}
+
+// Checks if a bit register has been allocated
+bool valid_creg(driver *d, int addr) {
+    return addr >= 0 && addr < d->ctotal && d && d->cregs != NULL;
 }
 
 // Gets a qubit from driver
 qubit get_qubit(driver *d, int addr) {
-    if(!valid_qubit(d, addr)) return (qubit){0, 0};
+    if(!valid_qreg(d, addr)) {
+        print_error(ERR_GET_QUBIT_NON_EXISTENT);
+        return (qubit){0, 0};
+    }
     return d->qregs[addr];
 }
 
 // Sets a qubit in driver
 bool set_qubit(driver *d, int addr, qubit q) {
-    if(!valid_qubit(d, addr)) return false;
+    if(!valid_qreg(d, addr)) {
+        print_error(ERR_SET_QUBIT_NON_EXISTENT);
+        return false;
+    }
     d->qregs[addr] = q;
+    return true;
+}
+
+// Gets a bit from driver
+unsigned get_bit(driver *d, int addr) {
+    if(!valid_creg(d, addr)) {
+        print_error(ERR_GET_BIT_NON_EXISTENT);
+        return 0;
+    }
+    return d->cregs[addr];
+}
+
+// Sets a qubit in driver
+bool set_bit(driver *d, int addr, unsigned b) {
+    if(!valid_creg(d, addr)) {
+        print_error(ERR_SET_BIT_NON_EXISTENT);
+        return false;
+    }
+    d->cregs[addr] = b;
     return true;
 }
 
 // Applies the Hadamard gate
 bool apply_H(driver *d, int addr) {
-    if(!valid_qubit(d, addr)) return false;
     qubit q = get_qubit(d, addr);
-    show_percentages(q);
+    if(!valid_qubit(q)) return false;
     set_qubit(d, addr, hadamard(q));
     return true;
 }
 
 // Applies the Pauli X gate
 bool apply_X(driver *d, int addr) {
-    if(!valid_qubit(d, addr)) return false;
     qubit q = get_qubit(d, addr);
+    if(!valid_qubit(q)) return false;
     set_qubit(d, addr, pauli_x(q));
     return true;
 }
 
 // Applies the Pauli Y gate
 bool apply_Y(driver *d, int addr) {
-    if(!valid_qubit(d, addr)) return false;
     qubit q = get_qubit(d, addr);
+    if(!valid_qubit(q)) return false;
     set_qubit(d, addr, pauli_y(q));
     return true;
 }
 
 // Applies the Pauli Z gate
 bool apply_Z(driver *d, int addr) {
-    if(!valid_qubit(d, addr)) return false;
     qubit q = get_qubit(d, addr);
+    if(!valid_qubit(q)) return false;
     set_qubit(d, addr, pauli_z(q));
     return true;
 }
 
 // Applies the Measurement gate
 int apply_M(driver *d, int addr) {
-    if(!valid_qubit(d, addr)) return -1;
     qubit q = get_qubit(d, addr);
+    if(!valid_qubit(q)) return -1;
     // Jumps one number in the stream to avoid repetition
     rand();
     int bit = (double)rand() / RAND_MAX > pow(q.zero, 2);
@@ -135,63 +166,65 @@ bool process_command(driver *d, command c) {
     if(!d) return false;
     switch(c.op) {
         case OP_END:
-            d->cregs[0] = d->cregs[c.args[0]];
+            set_bit(d, 0, get_bit(d, c.args[0]));
             return false;
-        case OP_CMP:
-            d->cregs[2] = apply_M(d, c.args[0]);
-            d->cregs[1] = d->cregs[2] >= 0 ? 
-            d->cregs[2] > c.args[1] ? 1
-            : d->cregs[2] < c.args[1] ? -1
-            : 0 
-            : -2;
+        case OP_PUT:
+            set_bit(d, c.args[0], c.args[1]);
             d->pointer++;
             return true;
         case OP_MOV:
-            d->cregs[c.args[1]] = d->cregs[c.args[0]];
+            set_bit(d, c.args[1], get_bit(d, c.args[0]));
+            d->pointer++;
+            return true;
+        case OP_CMP:
+            set_bit(d, 1, 
+                get_bit(d, 1) > get_bit(d, c.args[0]) ? 1
+                : (get_bit(d, 1) == get_bit(d, c.args[0]) ? 0
+                : -1));
             d->pointer++;
             return true;
         case OP_JE:
-            if(d->cregs[1] == 0) d->pointer = c.args[0]; 
+            if(get_bit(d, 1) == 0) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JNE:
-            if(d->cregs[1] != 0) d->pointer = c.args[0]; 
+            if(get_bit(d, 1) != 0) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JG:
-            if(d->cregs[1] == 1) d->pointer = c.args[0]; 
+            if(get_bit(d, 1) == 1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JGE:
-            if(d->cregs[1] == 0 || d->cregs[1] == 1) d->pointer = c.args[0]; 
+            if(get_bit(d, 1) == 0 || get_bit(d, 1) == 1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JL:
-            if(d->cregs[1] == -1) d->pointer = c.args[0]; 
+            if(get_bit(d, 1) == -1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JLE:
-            if(d->cregs[1] == 0 || d->cregs[1] == -1) d->pointer = c.args[0]; 
+            if(d->cregs[1] == 0 || get_bit(d, 1) == -1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_M:
-            d->cregs[1] = apply_M(d, c.args[0]);
+            set_bit(d, 1, apply_M(d, c.args[0]));
             d->pointer++;
             return true;
         case OP_H:
-            d->cregs[1] = apply_H(d, c.args[0]);
+            set_bit(d, 1, apply_H(d, c.args[0]));
             d->pointer++;
             return true;
         case OP_X:
-            d->cregs[1] = apply_X(d, c.args[0]);
+            set_bit(d, 1, apply_X(d, c.args[0]));
             d->pointer++;
             return true;
         case OP_Y:
-            d->cregs[1] = apply_Y(d, c.args[0]);
+            set_bit(d, 1, apply_Y(d, c.args[0]));
             d->pointer++;
             return true;
         case OP_Z:
-            d->cregs[1] = apply_Z(d, c.args[0]);
+            set_bit(d, 1, apply_Z(d, c.args[0]));
             d->pointer++;
             return true;
     }
