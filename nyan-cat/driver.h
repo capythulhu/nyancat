@@ -36,7 +36,7 @@
 #include "errors.h"
 
 #define RESERVED_REGS 2
-#define REG(addr) (RESERVED_REGS + addr)
+#define REG(d, addr) (d->ctotal + addr)
 
 // Driver structure
 typedef struct _driver {
@@ -101,6 +101,10 @@ bool set_qubit(driver *d, int addr, qubit q) {
 
 // Gets a bit from driver
 unsigned get_bit(driver *d, int addr) {
+    if(addr >= REG(d, 1)) {
+        print_error(ERR_GET_FORBIDDEN_BIT);
+        return false;
+    }
     if(!valid_creg(d, addr)) {
         print_error(ERR_GET_BIT_NON_EXISTENT);
         return 0;
@@ -110,6 +114,10 @@ unsigned get_bit(driver *d, int addr) {
 
 // Sets a qubit in driver
 bool set_bit(driver *d, int addr, unsigned b) {
+    if(addr >= REG(d, 1)) {
+        print_error(ERR_SET_FORBIDDEN_BIT);
+        return false;
+    }
     if(!valid_creg(d, addr)) {
         print_error(ERR_SET_BIT_NON_EXISTENT);
         return false;
@@ -166,7 +174,7 @@ bool process_command(driver *d, command c) {
     if(!d) return false;
     switch(c.op) {
         case OP_END:
-            set_bit(d, 0, get_bit(d, c.args[0]));
+            d->cregs[REG(d, 1)] = get_bit(d, c.args[0]);
             return false;
         case OP_PUT:
             set_bit(d, c.args[0], c.args[1]);
@@ -177,54 +185,54 @@ bool process_command(driver *d, command c) {
             d->pointer++;
             return true;
         case OP_CMP:
-            set_bit(d, 1, 
-                get_bit(d, 1) > get_bit(d, c.args[0]) ? 1
-                : (get_bit(d, 1) == get_bit(d, c.args[0]) ? 0
+            set_bit(d, REG(d, 0), 
+                get_bit(d, REG(d, 0)) > get_bit(d, c.args[0]) ? 1
+                : (get_bit(d, REG(d, 0)) == get_bit(d, c.args[0]) ? 0
                 : -1));
             d->pointer++;
             return true;
         case OP_JE:
-            if(get_bit(d, 1) == 0) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) == 0) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JNE:
-            if(get_bit(d, 1) != 0) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) != 0) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JG:
-            if(get_bit(d, 1) == 1) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) == 1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JGE:
-            if(get_bit(d, 1) == 0 || get_bit(d, 1) == 1) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) == 0 || get_bit(d, 1) == 1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JL:
-            if(get_bit(d, 1) == -1) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) == -1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_JLE:
-            if(d->cregs[1] == 0 || get_bit(d, 1) == -1) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) == 0 || get_bit(d, REG(d, 0)) == -1) d->pointer = c.args[0]; 
             else d->pointer++;
             return true;
         case OP_M:
-            set_bit(d, 1, apply_M(d, c.args[0]));
+            set_bit(d, REG(d, 0), apply_M(d, c.args[0]));
             d->pointer++;
             return true;
         case OP_H:
-            set_bit(d, 1, apply_H(d, c.args[0]));
+            set_bit(d, REG(d, 0), apply_H(d, c.args[0]));
             d->pointer++;
             return true;
         case OP_X:
-            set_bit(d, 1, apply_X(d, c.args[0]));
+            set_bit(d, REG(d, 0), apply_X(d, c.args[0]));
             d->pointer++;
             return true;
         case OP_Y:
-            set_bit(d, 1, apply_Y(d, c.args[0]));
+            set_bit(d, REG(d, 0), apply_Y(d, c.args[0]));
             d->pointer++;
             return true;
         case OP_Z:
-            set_bit(d, 1, apply_Z(d, c.args[0]));
+            set_bit(d, REG(d, 0), apply_Z(d, c.args[0]));
             d->pointer++;
             return true;
     }
@@ -238,7 +246,7 @@ void process_algorithm(driver *d, command *alg, bool echo) {
     do {
         i = process_command(d, alg[d->pointer]);
     } while(i == true);
-    if(echo) printf("Algorithm finished with return code %i.\n", d->cregs[0]);
+    if(echo) printf("Algorithm finished with return code %i.\n", d->cregs[REG(d, 1)]);
 }
 
 #endif
