@@ -77,7 +77,7 @@ bool valid_qreg(driver *d, int addr) {
 
 // Checks if a bit register has been allocated
 bool valid_creg(driver *d, int addr) {
-    return addr >= 0 && addr < d->ctotal && d && d->cregs != NULL;
+    return addr >= 0 && addr < d->ctotal + RESERVED_REGS && d && d->cregs != NULL;
 }
 
 // Gets a qubit from driver
@@ -238,7 +238,7 @@ void process_algorithm(driver *d, command *alg, bool echo) {
     do {
         i = process_command(d, alg[d->pointer]);
     } while(i == true);
-    if(echo) printf("Algorithm finished with return code %i.", d->cregs[0]);
+    if(echo) printf("Algorithm finished with return code %i.\n", d->cregs[0]);
 }
 
 #endif

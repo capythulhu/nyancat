@@ -32,7 +32,7 @@ enum operation {
 #define MOV(addr1, addr2)   ((command){OP_MOV,  {addr1, addr2}})
 // Writes a value to a classical register "addr"
 #define PUT(addr, val)      ((command){OP_PUT,  {addr, val}})
-// Compares the value of the classical register 0 with the
+// Compares the value of the classical register 1 with the
 // classical register "addr"
 #define CMP(addr)           ((command){OP_CMP,  {addr}})
 // Jumps to a line "val" if the comparsion outputs that the 
