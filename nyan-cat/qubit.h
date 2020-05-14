@@ -85,7 +85,6 @@ qubit pauli_x(qubit q) {
     matrix *a = new_matrix(2, 2);
     populate_matrix(a,  real(0), real(1),
                         real(1), real(0));
-    print_matrix(a);
     matrix *b = qubit_to_matrix(q);
     matrix *c = multiply_matrix(a, b);
     q = matrix_to_qubit(c);

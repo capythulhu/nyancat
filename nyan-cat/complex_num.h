@@ -1,6 +1,5 @@
 #ifndef COMPLEX_NUM_H
 #define COMPLEX_NUM_H
-
 typedef struct _complexnum {
     double r;
     double i;
@@ -39,5 +38,4 @@ char *show_complex(complexnum c) {
         sprintf(a, "%15.2f", c.r);
     return a;
 }
-
 #endif

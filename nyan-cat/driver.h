@@ -159,10 +159,10 @@ bool apply_Z(driver *d, int addr) {
 }
 
 // Applies the Measurement gate
-int apply_M(driver *d, int addr) {
+int apply_M(driver *d, int addr, bool echo) {
     qubit q = get_qubit(d, addr);
     if(!valid_qubit(q)) return -1;
-    printf("[MEASUREMENT] Qubit %i: %s\n", addr, show_qubit(q));
+    if(echo)printf("[MEASUREMENT] Qubit %i: %s\n", addr, show_qubit(q));
     // Jumps one number in the stream to avoid repetition
     rand();
     int bit = abs(((double)rand() / RAND_MAX) > pow_complex(q.zero, 2).r);
@@ -171,7 +171,7 @@ int apply_M(driver *d, int addr) {
 }
 
 // Process a command line
-bool process_command(driver *d, command c) {
+bool process_command(driver *d, command c, bool echo) {
     if(!d) return false;
     switch(c.op) {
         case OP_END:
@@ -217,7 +217,7 @@ bool process_command(driver *d, command c) {
             else d->pointer++;
             return true;
         case OP_M:
-            set_bit(d, REG(d, 0), apply_M(d, c.args[0]));
+            set_bit(d, REG(d, 0), apply_M(d, c.args[0], echo));
             d->pointer++;
             return true;
         case OP_H:
@@ -245,7 +245,7 @@ void process_algorithm(driver *d, command *alg, bool echo) {
     d->pointer = 0;
     int i = false;
     do {
-        i = process_command(d, alg[d->pointer]);
+        i = process_command(d, alg[d->pointer], echo);
     } while(i == true);
     if(echo) printf("Algorithm finished with return code %i.\n", d->cregs[REG(d, 1)]);
 }
