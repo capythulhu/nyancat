@@ -21,9 +21,11 @@
 #include <stdarg.h>
 #endif
 
+#include "complex_num.h"
+
 // Matrix structure
 typedef struct _matrix {
-    double *vals;
+    complexnum *vals;
     int rows, columns;
 } matrix;
 
@@ -32,19 +34,19 @@ matrix *new_matrix(int rows, int columns) {
     matrix *m = (matrix*)malloc(sizeof(matrix));
     m->rows = rows;
     m->columns = columns;
-    m->vals = (double*)calloc(sizeof(double), rows * columns);
+    m->vals = (complexnum*)calloc(sizeof(complexnum), rows * columns);
     return m;
 }
 
 // Gets value from matrix
-double get_matrix_val(matrix *m, int row, int column) {
+complexnum get_matrix_val(matrix *m, int row, int column) {
     if(!m || row >= m->rows || row < 0 
-        || column >= m->columns || column < 0) return 0;
+        || column >= m->columns || column < 0) return (complexnum){0, 0};
     return m->vals[row * m->columns + column];
 }
 
 // Sets value on matrix
-int set_matrix_val(matrix *m, int row, int column, double val) {
+int set_matrix_val(matrix *m, int row, int column, complexnum val) {
     if(!m || row >= m->rows || row < 0 
         || column >= m->columns || column < 0) return 0;
     m->vals[row * m->columns + column] = val;
@@ -57,7 +59,7 @@ void print_matrix(matrix *m) {
     for(i = 0; i < m->rows; i++) {
         printf("| ");
         for(j = 0; j < m->columns; j++) {
-            printf("%10f ", get_matrix_val(m, i, j));
+            printf("%s", show_complex(get_matrix_val(m, i, j)));
         }
         printf("|\n");
     }
@@ -70,17 +72,16 @@ bool populate_matrix(matrix *m, ...) {
     va_start(ap, m);
 
     int i, j; 
-    double k;
+    complexnum k;
     for (i = 0; i < m->rows; i++) {
         for (j = 0; j < m->columns; j++) {
-            k = va_arg(ap, double);
+            k = va_arg(ap, complexnum);
             set_matrix_val(m, i, j, k);
         }
     }
     va_end(ap);
     return true;
 }
-
 
 // Frees matrix
 int free_matrix(matrix *m) {
@@ -95,13 +96,18 @@ int free_matrix(matrix *m) {
 matrix *multiply_matrix(matrix *m, matrix *n) {
     if(m->columns != n->rows) return NULL;
     matrix *r = new_matrix(m->rows, n->columns);
-    double val;
+    complexnum val;
     int i, j, k;
-    for(i = 0; i < r->rows; i++) {
-        for(j = 0; j < r->columns; j++) {
-            val = 0;
+    for(i = 0; i < m->rows; i++) {
+        for(j = 0; j < n->columns; j++) {
+            complexnum val = { 0, 0 };
             for(k = 0; k < m->columns; k++) {
-                val += get_matrix_val(m, i, k) * get_matrix_val(n, k, j);
+                val = add_complex(val,
+                    multiply_complex(
+                        get_matrix_val(m, i, k),
+                        get_matrix_val(n, k, j)
+                    )
+                );
             }
             set_matrix_val(r, i, j, val);
         }

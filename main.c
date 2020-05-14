@@ -12,8 +12,12 @@ int main(void) {
 
     command alg_setQubit[] = 
     {
-        PUT(0, 3),
-        END(0)
+        X(0),
+        Y(0),
+        Z(0),
+        H(0),
+        M(0),
+        END(REG(d, 0))
     };
 
     process_algorithm(d, alg_setQubit, true);

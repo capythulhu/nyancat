@@ -162,9 +162,10 @@ bool apply_Z(driver *d, int addr) {
 int apply_M(driver *d, int addr) {
     qubit q = get_qubit(d, addr);
     if(!valid_qubit(q)) return -1;
+    printf("[MEASUREMENT] Qubit %i: %s\n", addr, show_qubit(q));
     // Jumps one number in the stream to avoid repetition
     rand();
-    int bit = (double)rand() / RAND_MAX > pow(q.zero, 2);
+    int bit = abs(((double)rand() / RAND_MAX) > pow_complex(q.zero, 2).r);
     set_qubit(d, addr, bit ? ONE : ZERO);
     return bit;
 }
