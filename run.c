@@ -12,9 +12,6 @@ int main(int argc, char **argv) {
     // registers
     driver *d = new_driver(1, 2);
 
-    // Target value
-    unsigned value = atoi(argv[1]) & 1;
-
-    algorithm a = load_script("examples/set_qubit");
+    algorithm a = load_script(argv[1]);
     free_driver(d);
 }

@@ -1,0 +1,14 @@
+// this is a sample comment!
+< foo, bar >
+put 0!  foo
+put 1!  bar
+First
+h   0?
+m   0?
+cmp foo
+jne First
+h   0?
+m   0?
+cmp bar
+jne First
+end 0%

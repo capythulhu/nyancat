@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Build nyancat script runner (run.c) with gcc.exe",
+			"command": "gcc",
+			"args": [
+				"run.c",
+				"-o",
+				"nyancat"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		}
+	]
+}

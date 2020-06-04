@@ -1,9 +1,9 @@
 < val >
-put 0 val
-:Invert
-x 0
-m 0
-mov %0 1
+put 0! val
+Invert
+x 0?
+m 0?
+mov 0% 1!
 cmp 0
-jne :Invert
-end 1
+jne Invert
+end 1!

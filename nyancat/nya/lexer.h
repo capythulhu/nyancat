@@ -21,15 +21,13 @@
 #include <string.h>
 #endif
 
-#include "commands.h"
+#include "operations.h"
 #include "../utils/hashmap.h"
 
 #define MAX_ERROR_LENGTH    1<<8
 #define MAX_LINE_LENGTH     1<<8
 #define MAX_PARAM_LENGTH    1<<7
-#define MAX_PARAMS          1<<6
 #define MAX_LABEL_LENGTH    1<<7
-#define MAX_LABELS          1<<6
 
 typedef struct _algorithm {
     command     *cmds;
@@ -40,6 +38,7 @@ algorithm load_script(char *path);
 
 typedef enum _nyanError {
     NO_ERRORS = -1,
+    GENERAL_NOT_NYA,
     GENERAL_ILLEGAL_CHAR,
     PARAM_ILLEGAL,
     PARAM_NO_COMMA,
@@ -47,14 +46,14 @@ typedef enum _nyanError {
     PARAM_UNNECESSARY,
     PARAM_NO_ANGLE_BRACKET,
     LABEL_ILLEGAL,
-    OPERATION_ILLEGAL
+    TASK_ILLEGAL
 } nyanError;
 
 typedef enum _nyanLine {
     LINE_UNDEFINED = -1,
     LINE_PARAM,
     LINE_LABEL,
-    LINE_OPERATION,
+    LINE_TASK,
 } _nyanLine;
 
 // Lexes a .nya script
@@ -98,59 +97,66 @@ algorithm load_script(char *path) {
                     break;
                 }
 
-                // Identifies operations
+                // Identifies tasks
                 if(line[j] >= 'a'
                     && line[j] <= 'z') {
                     if(errorId == NO_ERRORS
                             && k != LINE_UNDEFINED) {
-                        errorId = OPERATION_ILLEGAL;
+                        errorId = TASK_ILLEGAL;
                         break;
                     }
-                    k = LINE_OPERATION;
-                    // TODO
-                    j++;
+                    k = LINE_TASK;
+                    // Allocates a buffer for the name
+                    char *taskBuffer = malloc(sizeof(char) * MAX_TASK_LENGTH);
+                    while(line[j] >= 'a'
+                        && line[j] <= 'z' ) {
+                        // Appends character to buffer array
+                        sprintf(taskBuffer, "%s%c", taskBuffer, line[j]);
+                        // Goes to next character
+                        j++;
+                    }
+                    if(line[j] == ' ') {
+                        while(line[j] == ' ') j++;
+                        if(j < sizeof(line)
+                            && line[j] != '\0'
+                            && line[j] != '\n') {
+                                
+                        }
+                    }
                     continue;
                 }
 
                 // Identifies declaring labels
-                if(line[j] == ':') {
+                if(line[j] >= 'A'
+                    && line[j] <= 'Z') {
                     if(errorId == NO_ERRORS
                         && k != LINE_UNDEFINED) {
                         errorId = LABEL_ILLEGAL;
                         break;
                     }
                     k = LINE_LABEL;
-                    // If it matches ^:[a-zA-Z], enters the label loop
-                    if((line[j + 1] >= 'a'
-                            && line[j + 1] <= 'z')
-                        || (line[j + 1] >= 'A'
-                            && line[j + 1] <= 'Z')) {
-                        // Allocates a buffer for the name
-                        char *labelBuffer = malloc(sizeof(char) * MAX_LABEL_LENGTH);
-                        labelBuffer[0] = '\0';
-                        // Ignores ':'
+                    // Allocates a buffer for the name
+                    char *labelBuffer = malloc(sizeof(char) * MAX_LABEL_LENGTH);
+                    // Loops through the name
+                    while((line[j] >= 'a'
+                            && line[j] <= 'z')
+                        || (line[j] >= 'A'
+                            && line[j] <= 'Z')
+                        || (line[j] >= '0'
+                            && line[j] <= '9')) {
+                        // Appends character to buffer array
+                        sprintf(labelBuffer, "%s%c", labelBuffer, line[j]);
+                        // Goes to next character
                         j++;
-                        // Loops through the name
-                        while((line[j] >= 'a'
-                                && line[j] <= 'z')
-                            || (line[j] >= 'A'
-                                && line[j] <= 'Z')
-                            || (line[j] >= '0'
-                                && line[j] <= '9')) {
-                            // Appends character to buffer array
-                            sprintf(labelBuffer, "%s%c", labelBuffer, line[j]);
-                            // Goes to next character
-                            j++;
-                        }
-                        put_val_on_hashmap(
-                            labels,
-                            labelBuffer,
-                            labels->size
-                        );
-                        // Frees buffer
-                        free(labelBuffer);
-                        continue;
                     }
+                    put_val_on_hashmap(
+                        labels,
+                        labelBuffer,
+                        labels->size
+                    );
+                    // Frees buffer
+                    free(labelBuffer);
+                    continue;
                 }
 
                 // Identifies opening params
@@ -241,6 +247,7 @@ algorithm load_script(char *path) {
                     }
                     continue;
                 }
+                
                 if(errorId == NO_ERRORS) {
                     printf("a: %c\n", line[j]);
                     errorId = GENERAL_ILLEGAL_CHAR;
@@ -248,15 +255,21 @@ algorithm load_script(char *path) {
                 break;
             }
         }
+    } else {
+        errorId = GENERAL_NOT_NYA;
     }
-
+    
     fclose(f);
     if(errorId < 0) {
-        printf("params: %i\n", params->size);
-        printf("labels: %i\n", labels->size);
+        printf("nyancat: lexing succeeded.\n");
+        printf("\tparams: %i\n", params->size);
+        printf("\tlabels: %i\n", labels->size);
     } else {
         char *errorMsg;
         switch(errorId) {
+            case GENERAL_NOT_NYA:
+                errorMsg = "File does not exist or is not a .nya script.";
+                break;
             case GENERAL_ILLEGAL_CHAR:
                 errorMsg = "Illegal loose character.";
                 break;
@@ -278,14 +291,15 @@ algorithm load_script(char *path) {
             case LABEL_ILLEGAL:
                 errorMsg = "Illegal label declaration.";
                 break;
-            case OPERATION_ILLEGAL:
-                errorMsg = "Illegal operation call.";
+            case TASK_ILLEGAL:
+                errorMsg = "Illegal task call.";
                 break;
             default:
                 errorMsg = "Unknown error.";
                 break;
         }
-        printf("error: %s\n", errorMsg);
+        printf("nyancat: lexing failed.\n");
+        printf("\terror: %s\n", errorMsg);
     }
     return a;
 }
