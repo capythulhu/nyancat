@@ -1,4 +1,4 @@
-# nyan-cat
+# nyancat
 Library for simulating quantum computing.
 
 # Compiling on Linux
