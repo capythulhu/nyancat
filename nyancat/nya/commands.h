@@ -1,5 +1,5 @@
-#ifndef OPERATIONS_H
-#define OPERATIONS_H
+#ifndef COMMANDS_H
+#define COMMANDS_H
 
 typedef struct _command {
     unsigned    op;

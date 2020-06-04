@@ -1,5 +1,5 @@
-#ifndef QUBIT_H
-#define QUBIT_H
+#ifndef NYANCAT_MATH_QUBIT_H
+#define NYANCAT_MATH_QUBIT_H
 
 #ifndef STDLIB_H
 #define STDLIB_H
@@ -29,6 +29,16 @@ typedef struct _qubit {
 
 #define ZERO (qubit){real(1), real(0)}
 #define ONE (qubit){real(0), real(1)}
+
+bool valid_qubit(qubit q);
+matrix *qubit_to_matrix(qubit q);
+qubit matrix_to_qubit(matrix *m);
+char *show_qubit(qubit q);
+char *show_percentages(qubit q);
+qubit hadamard(qubit q);
+qubit pauli_x(qubit q);
+qubit pauli_y(qubit q);
+qubit pauli_z(qubit q);
 
 // Checks if qubit's eigenvalues are 100% in total
 bool valid_qubit(qubit q) {

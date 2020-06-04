@@ -1,3 +1,5 @@
+#ifndef NYANCAT_NYA_ERRORS
+#define NYANCAT_NYA_ERRORS
 #ifndef STDLIB_H
 #define STDLIB_H
 #include <stdlib.h>
@@ -17,3 +19,4 @@
 #define ERR_INVALID_ARGUMENT        "Attempt to run instruction with invalid arguments."
 
 void print_error(char *err) { printf("[ERROR] %s\n", err); }
+#endif

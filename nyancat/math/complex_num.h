@@ -1,5 +1,5 @@
-#ifndef COMPLEX_NUM_H
-#define COMPLEX_NUM_H
+#ifndef NYANCAT_COMPLEX_NUM_H
+#define NYANCAT_COMPLEX_NUM_H
 typedef struct _complexnum {
     double r;
     double i;
@@ -7,6 +7,11 @@ typedef struct _complexnum {
 
 #define real(r) ((complexnum){r, 0})
 #define imag(i) ((complexnum){0, i})
+
+complexnum add_complex(complexnum c, complexnum d);
+complexnum multiply_complex(complexnum c, complexnum d);
+complexnum pow_complex(complexnum c, int e);
+char *show_complex(complexnum c);
 
 complexnum add_complex(complexnum c, complexnum d) {
     complexnum e;

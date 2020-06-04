@@ -1,5 +1,5 @@
-#ifndef MATRIX_H
-#define MATRIX_H
+#ifndef NYANCAT_MATH_MATRIX_H
+#define NYANCAT_MATH_MATRIX_H
 
 #ifndef STDLIB_H
 #define STDLIB_H
@@ -28,6 +28,14 @@ typedef struct _matrix {
     complexnum *vals;
     int rows, columns;
 } matrix;
+
+matrix *new_matrix(int rows, int columns);
+complexnum get_matrix_val(matrix *m, int row, int column);
+int set_matrix_val(matrix *m, int row, int column, complexnum val);
+void print_matrix(matrix *m);
+bool populate_matrix(matrix *m, ...);
+int free_matrix(matrix *m);
+matrix *multiply_matrix(matrix *m, matrix *n);
 
 // Allocates a new matrix
 matrix *new_matrix(int rows, int columns) {

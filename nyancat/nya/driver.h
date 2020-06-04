@@ -1,5 +1,5 @@
-#ifndef DRIVER_H
-#define DRIVER_H
+#ifndef NYANCAT_NYA_DRIVER_H
+#define NYANCAT_NYA_DRIVER_H
 
 #ifndef STDLIB_H
 #define STDLIB_H
@@ -31,9 +31,10 @@
 #include <math.h>
 #endif
 
-#include "qubit.h"
-#include "operations.h"
+#include "../math/qubit.h"
+#include "commands.h"
 #include "errors.h"
+#include "lexer.h"
 
 #define RESERVED_REGS 2
 #define REG(d, addr) (d->ctotal + addr)
@@ -46,6 +47,21 @@ typedef struct _driver {
     unsigned    ctotal;
     unsigned    pointer;
 } driver;
+
+driver *new_driver(unsigned qtotal, unsigned ctotal);
+bool free_driver(driver *d);
+bool valid_qreg(driver *d, int addr);
+bool valid_creg(driver *d, int addr);
+qubit get_qubit(driver *d, int addr);
+bool set_qubit(driver *d, int addr, qubit q);
+unsigned get_bit(driver *d, int addr);
+bool set_bit(driver *d, int addr, unsigned b);
+bool apply_X(driver *d, int addr);
+bool apply_Y(driver *d, int addr);
+bool apply_Z(driver *d, int addr);
+int apply_M(driver *d, int addr, bool echo);
+bool process_command(driver *d, command c, bool echo);
+void process_algorithm(driver *d, command *alg, bool echo);
 
 // Creates a new driver
 driver *new_driver(unsigned qtotal, unsigned ctotal) {
@@ -249,5 +265,12 @@ void process_algorithm(driver *d, command *alg, bool echo) {
     } while(i == true);
     if(echo) printf("Algorithm finished with return code %i.\n", d->cregs[REG(d, 1)]);
 }
+
+/*
+bool run(driver *d, char *path, int *args) {
+    bool res = load_script(path);
+    
+}
+*/
 
 #endif

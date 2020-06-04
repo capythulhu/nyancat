@@ -1,0 +1,17 @@
+< val >
+// Puts the target value in the classical register "0"
+put 0 val
+// Declares a label for inverting the qubit, if needed
+:Invert
+// Inverts the qubit "0"
+x 0
+// Measures the qubit "0"
+m 0
+// Moves the result to the classical register "1"
+mov %0 1
+// Compares the classical register "0" with the output of the measurement
+cmp 0
+// Jumps back to line "invert" (X 0), if the values are not equal
+jne :Invert
+// Ends the algorithm, outputing the measurement result
+end 1
