@@ -1,6 +1,7 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/thzoid/vscode-nyancat/master/icon.png">
 </p>
+
 # Welcome to nyancat!
 **nyancat** is a C library that allows you to *simulate a quantum processor* and easily *write machine code for it!*
 
