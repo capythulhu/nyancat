@@ -17,16 +17,15 @@
 #endif
 
 // Hashmap node
-typedef struct _hashnode{
+typedef struct _hashnode {
     char *key;
     unsigned val;
     struct _hashnode *next;
 } hashnode;
-
 // Hashmap
 typedef struct _hashmap{
     unsigned size;
-    struct _hashnode *first;
+    hashnode *first;
 } hashmap;
 
 hashmap *new_hashmap(void);

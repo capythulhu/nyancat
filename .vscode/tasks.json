@@ -8,7 +8,8 @@
 			"args": [
 				"run.c",
 				"-o",
-				"nyancat"
+				"nyancat",
+				"-lm"
 			],
 			"problemMatcher": [
 				"$gcc"

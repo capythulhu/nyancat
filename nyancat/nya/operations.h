@@ -30,4 +30,4 @@ static const nyanTask nyanTasks[] = {
     { "x",      { TYPE_QUBIT } },
     { "y",      { TYPE_QUBIT } },
     { "z",      { TYPE_QUBIT } },
-}
+};

@@ -22,6 +22,7 @@
 #endif
 
 #include "operations.h"
+#include "commands.h"
 #include "../utils/hashmap.h"
 
 #define MAX_ERROR_LENGTH    1<<8
@@ -75,6 +76,10 @@ algorithm load_script(char *path) {
     f = fopen(finalPath, "r");
 
     if(f) {
+        // If the line is inside a block comment
+        bool onBlockComment = false;
+        
+        // Loops through lines
         while(fgets(line, MAX_LINE_LENGTH, f)) { 
             // Char counter
             int j = 0;
@@ -85,175 +90,195 @@ algorithm load_script(char *path) {
                 && line[j] != '\0'
                 && line[j] != '\n') {
                 
-                // Checks if the character is a whitespace
-                if(line[j] == ' ') {
+                if(onBlockComment) {
+                    // Checks if the character ends block comment
+                    if(line[j] == '*'
+                        && line[j + 1] == '/') {
+                        // Ignores end comment notation
+                        j += strlen("*/");
+                        onBlockComment = false;
+                    }
                     j++;
-                    continue;
-                }
-                
-                // Checks if the character is an in-line comment
-                if(line[j] == '/'
-                    && line[j + 1] == '/') {
-                    break;
-                }
-
-                // Identifies tasks
-                if(line[j] >= 'a'
-                    && line[j] <= 'z') {
-                    if(errorId == NO_ERRORS
-                            && k != LINE_UNDEFINED) {
-                        errorId = TASK_ILLEGAL;
+                } else {
+                    // Checks if the character starts block comment
+                    if(line[j] == '/'
+                        && line[j + 1] == '*') {
+                        // Ignores end comment notation
+                        j += strlen("/*");
+                        onBlockComment = true;
+                        continue;
+                    }
+                    // Checks if the character is an in-line comment
+                    if(line[j] == '/'
+                        && line[j + 1] == '/') {
                         break;
                     }
-                    k = LINE_TASK;
-                    // Allocates a buffer for the name
-                    char *taskBuffer = malloc(sizeof(char) * MAX_TASK_LENGTH);
-                    while(line[j] >= 'a'
-                        && line[j] <= 'z' ) {
-                        // Appends character to buffer array
-                        sprintf(taskBuffer, "%s%c", taskBuffer, line[j]);
-                        // Goes to next character
-                        j++;
-                    }
+                    
+                    // Checks if the character is a whitespace
                     if(line[j] == ' ') {
-                        while(line[j] == ' ') j++;
-                        if(j < sizeof(line)
-                            && line[j] != '\0'
-                            && line[j] != '\n') {
-                                
-                        }
-                    }
-                    continue;
-                }
-
-                // Identifies declaring labels
-                if(line[j] >= 'A'
-                    && line[j] <= 'Z') {
-                    if(errorId == NO_ERRORS
-                        && k != LINE_UNDEFINED) {
-                        errorId = LABEL_ILLEGAL;
-                        break;
-                    }
-                    k = LINE_LABEL;
-                    // Allocates a buffer for the name
-                    char *labelBuffer = malloc(sizeof(char) * MAX_LABEL_LENGTH);
-                    // Loops through the name
-                    while((line[j] >= 'a'
-                            && line[j] <= 'z')
-                        || (line[j] >= 'A'
-                            && line[j] <= 'Z')
-                        || (line[j] >= '0'
-                            && line[j] <= '9')) {
-                        // Appends character to buffer array
-                        sprintf(labelBuffer, "%s%c", labelBuffer, line[j]);
-                        // Goes to next character
                         j++;
+                        continue;
                     }
-                    put_val_on_hashmap(
-                        labels,
-                        labelBuffer,
-                        labels->size
-                    );
-                    // Frees buffer
-                    free(labelBuffer);
-                    continue;
-                }
 
-                // Identifies opening params
-                if(line[j] == '<') {
-                    if(errorId == NO_ERRORS
-                        && k != LINE_UNDEFINED) {
-                        errorId = PARAM_ILLEGAL;
-                        break;
-                    }
-                    k = LINE_PARAM;
-                    // If the parameter declaration has been closed already
-                    bool closedDeclaration = false;
-                    // If any parameter has been found
-                    bool foundParam = false;
-                    // If a whitespace has been found
-                    bool foundWhitespace = false;
-                    // Ignores opening character
-                    j++;
-                    // Allocates a buffer for the name
-                    char *paramBuffer = malloc(sizeof(char) * MAX_PARAM_LENGTH);
-                    paramBuffer[0] = '\0';
-                    do {
-                        if(line[j] == ' ') {
-                            foundWhitespace = true;
+                    // Identifies tasks
+                    if(line[j] >= 'a'
+                        && line[j] <= 'z') {
+                        if(errorId == NO_ERRORS
+                                && k != LINE_UNDEFINED) {
+                            errorId = TASK_ILLEGAL;
+                            break;
+                        }
+                        k = LINE_TASK;
+                        // Allocates a buffer for the name
+                        char *taskBuffer = malloc(sizeof(char) * MAX_TASK_LENGTH);
+                        while(line[j] >= 'a'
+                            && line[j] <= 'z' ) {
+                            // Appends character to buffer array
+                            sprintf(taskBuffer, "%s%c", taskBuffer, line[j]);
+                            // Goes to next character
                             j++;
                         }
-                        // If it's a valid separator, records param
-                        if(line[j] == ','
-                            || line[j] == '>') {
-                            if(foundParam) {
-                                put_val_on_hashmap(
-                                    params,
-                                    paramBuffer,
-                                    params->size
-                                );
-                                // Finishes param declaration
-                                foundParam = false;
-                                // Closes declaration if found closing bracket
-                                if(line[j] == '>')
-                                    closedDeclaration = true;
-                                // Ignores separator character
-                                j++;
-                                // Resets buffer
-                                paramBuffer[0] = '\0';
-                            } else if (errorId == NO_ERRORS) {
-                                errorId = PARAM_UNNECESSARY;
-                                break;
+                        if(line[j] == ' ') {
+                            while(line[j] == ' ') j++;
+                            if(j < sizeof(line)
+                                && line[j] != '\0'
+                                && line[j] != '\n') {
+                                    
                             }
                         }
-                        // If it matches ^:[a-zA-Z0-9], enters the param loop
-                        while(!closedDeclaration
-                            && (line[j] >= 'a'
+                        continue;
+                    }
+
+                    // Identifies declaring labels
+                    if(line[j] >= 'A'
+                        && line[j] <= 'Z') {
+                        if(errorId == NO_ERRORS
+                            && k != LINE_UNDEFINED) {
+                            errorId = LABEL_ILLEGAL;
+                            break;
+                        }
+                        k = LINE_LABEL;
+                        // Allocates a buffer for the name
+                        char *labelBuffer = malloc(sizeof(char) * MAX_LABEL_LENGTH);
+                        // Loops through the name
+                        while((line[j] >= 'a'
                                 && line[j] <= 'z')
                             || (line[j] >= 'A'
                                 && line[j] <= 'Z')
                             || (line[j] >= '0'
                                 && line[j] <= '9')) {
-                            // Report error if last param is unfinished
-                            if(errorId == NO_ERRORS
-                                && foundParam
-                                && foundWhitespace) {
-                                errorId = PARAM_NO_COMMA;
-                                break;
-                            }
-                            // Current character is not a whitespace
-                            foundWhitespace = false;
-                            // Parameter declaration found
-                            if(!foundParam) foundParam = true;
                             // Appends character to buffer array
-                            sprintf(paramBuffer, "%s%c", paramBuffer, line[j]);
+                            sprintf(labelBuffer, "%s%c", labelBuffer, line[j]);
                             // Goes to next character
                             j++;
                         }
-                    } while(line[j] == ' '
-                        || line[j] == ','
-                        || line[j] == '>');
-                    // Frees buffer
-                    free(paramBuffer);
-                    // If there is an unfinished param, throw error
-                    if(errorId == NO_ERRORS
-                        && foundParam) 
-                        errorId = PARAM_UNFINISHED;
-                    // If there's no closing bracket, throw error
-                    if(errorId == NO_ERRORS
-                        && !closedDeclaration) {
-                        errorId = PARAM_NO_ANGLE_BRACKET;
-                        break;
+                        put_val_on_hashmap(
+                            labels,
+                            labelBuffer,
+                            labels->size
+                        );
+                        // Frees buffer
+                        free(labelBuffer);
+                        continue;
                     }
-                    continue;
+
+                    // Identifies opening params
+                    if(line[j] == '<') {
+                        if(errorId == NO_ERRORS
+                            && k != LINE_UNDEFINED) {
+                            errorId = PARAM_ILLEGAL;
+                            break;
+                        }
+                        k = LINE_PARAM;
+                        // If the parameter declaration has been closed already
+                        bool closedDeclaration = false;
+                        // If any parameter has been found
+                        bool foundParam = false;
+                        // If a whitespace has been found
+                        bool foundWhitespace = false;
+                        // Ignores opening character
+                        j++;
+                        // Allocates a buffer for the name
+                        char *paramBuffer = malloc(sizeof(char) * MAX_PARAM_LENGTH);
+                        paramBuffer[0] = '\0';
+                        do {
+                            if(line[j] == ' ') {
+                                foundWhitespace = true;
+                                j++;
+                            }
+                            // If it's a valid separator, records param
+                            if(line[j] == ','
+                                || line[j] == '>') {
+                                if(foundParam) {
+                                    put_val_on_hashmap(
+                                        params,
+                                        paramBuffer,
+                                        params->size
+                                    );
+                                    // Finishes param declaration
+                                    foundParam = false;
+                                    // Closes declaration if found closing bracket
+                                    if(line[j] == '>')
+                                        closedDeclaration = true;
+                                    // Ignores separator character
+                                    j++;
+                                    // Resets buffer
+                                    paramBuffer[0] = '\0';
+                                } else if (errorId == NO_ERRORS) {
+                                    errorId = PARAM_UNNECESSARY;
+                                    break;
+                                }
+                            }
+                            // If it matches ^:[a-zA-Z0-9], enters the param loop
+                            while(!closedDeclaration
+                                && (line[j] >= 'a'
+                                    && line[j] <= 'z')
+                                || (line[j] >= 'A'
+                                    && line[j] <= 'Z')
+                                || (line[j] >= '0'
+                                    && line[j] <= '9')) {
+                                // Report error if last param is unfinished
+                                if(errorId == NO_ERRORS
+                                    && foundParam
+                                    && foundWhitespace) {
+                                    errorId = PARAM_NO_COMMA;
+                                    break;
+                                }
+                                // Current character is not a whitespace
+                                foundWhitespace = false;
+                                // Parameter declaration found
+                                if(!foundParam) foundParam = true;
+                                // Appends character to buffer array
+                                sprintf(paramBuffer, "%s%c", paramBuffer, line[j]);
+                                // Goes to next character
+                                j++;
+                            }
+                        } while(line[j] == ' '
+                            || line[j] == ','
+                            || line[j] == '>');
+                        // Frees buffer
+                        free(paramBuffer);
+                        // If there is an unfinished param, throw error
+                        if(errorId == NO_ERRORS
+                            && foundParam) 
+                            errorId = PARAM_UNFINISHED;
+                        // If there's no closing bracket, throw error
+                        if(errorId == NO_ERRORS
+                            && !closedDeclaration) {
+                            errorId = PARAM_NO_ANGLE_BRACKET;
+                            break;
+                        }
+                        continue;
+                    }
+                    
+                    if(errorId == NO_ERRORS) {
+                        printf("a: %c\n", line[j]);
+                        errorId = GENERAL_ILLEGAL_CHAR;
+                    }
+                    break;
                 }
-                
-                if(errorId == NO_ERRORS) {
-                    printf("a: %c\n", line[j]);
-                    errorId = GENERAL_ILLEGAL_CHAR;
-                }
-                break;
             }
+                
         }
     } else {
         errorId = GENERAL_NOT_NYA;
