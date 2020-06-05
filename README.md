@@ -1,10 +1,12 @@
-![logo](https://raw.githubusercontent.com/thzoid/vscode-nyancat/master/icon.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/thzoid/vscode-nyancat/master/icon.png">
+</p>
 # Welcome to nyancat!
 **nyancat** is a C library that allows you to *simulate a quantum processor* and easily *write machine code for it!*
 
 You can either run simple isolated quantum algorithms with `nyancat.exe` or integrate many algorithms into a C project and make more complex computations.
 
-:warning: Please note that this library _only simulates a QPU_. You shouldn't expect it neither to be more performatic than classical computing nor to compile code that would run on a real quantum processor. This library has it's own (simplified) architecture implementation. :warning:
+:warning: Please note that this library _only simulates a QPU_. You shouldn't expect it neither to be more performatic than classical computing nor to compile code that would run on a real quantum processor. This library has it's own (simplified) architecture implementation.
 
 ## Recommended IDE
 I recommend [Visual Studio Code](https://code.visualstudio.com/) for you to write your quantum algorithms. I've prepared an extension that you might want to use so you can have stuff like syntax highlighting and snippets! Get it here: [nyancat VSCode Extension](http://).
@@ -14,16 +16,19 @@ Here is how the QPU (Quantum Processing Unit) implemented on this library works:
 
 When you allocate a new quantum driver, you have to specify a number of classical registers (4 bytes/`sizeof(int)` each) and quantum registers (1 qubit each). 
 
-:warning: It is possible to directly modify any classical, reserved or quantum register by acessing the `driver` structure in C, but it isn't recommended because that's not how a quantum computer works. Unless you're trying to implement new features on the driver itself, try to code as if your `driver` is actually calling a hardware, and it knows what it does. :warning:
+:warning: It is possible to directly modify any classical, reserved or quantum register by acessing the `driver` structure in C, but it isn't recommended because that's not how a quantum computer works. Unless you're trying to implement new features on the driver itself, try to code as if your `driver` is actually calling a hardware, and it knows what it does.
 
 For example, let's say that we allocate a driver with 3 classical registers and 2 quantum registers.
 
 The driver's quantum memory would look like this:
+
 | Id | Type             | Access         |
 |----|------------------|----------------|
 | 0  | Quantum Register | Measure and perform spin operations. |
 | 1  | Quantum Register | Measure and perform spin operations. |
+
 And the classical memory, like this:
+
 | Id | Type                        | Access                           |
 |----|-----------------------------|----------------------------------|
 | 0  | Classical Register          | Read and write.                   |
@@ -46,7 +51,9 @@ Here is how a label is declared in nyancat code:
 
 `Foo`
 
-I mean, it seems basic (and it is) but look closer. A label declaration should always start with an upper-case letter. You can reference labels that weren't declarated before your current line, as long as every label has an unique name. **There can only be one label declaration per line.**
+I mean, it seems basic (and it is) but look closer. **A label declaration must always start with an upper-case letter.** We recommend you to use Pascal Case.
+
+You can reference labels that weren't declarated before your current line, as long as every label has an unique name. **There can only be one label declaration per line.**
 
 You can jump through labels using jump tasks, of which we'll talk about very soon.
 
@@ -55,14 +62,16 @@ Not everything is a constant. Let's say that you want to perform a certain quant
 
 `< foo, bar >`
 
-Arguments usually have no upper-case letter on their names so you don't mistake them for labels. However, this practice isn't forced and the code will still compile. I mean, if you're reading this, that means you're super cool, so I trust you completely :sunglasses:.
+**Arguments must start with a lower-case letter.** We recommend you to use Camel Case.
+
+In contrast with labels, it is not possible to reference an argument that wasn't declared previously.
 
 You can declarate many arguments, many times, but **only once per line.** Trying to open another pair of angle brackets (`<>`) on the same line will cause your code to not work.
 
 ## Values and Pointers
 Right now, the only plain values that you can write on your code are numeric, discrete values. You can write signed integers up to 4 bytes (`sizeof(int)` in C).
 
-:warning: Just like a plain number, an argument reference is considered a plain numeric value. :warning:
+:warning: Just like a plain number, an argument reference is considered a plain numeric value.
 
 However, differently from C, there are three types of pointers.
 
@@ -76,16 +85,6 @@ You can represent a classical pointer in nyancat code like this:
 
 Where `0` is the classical register id that you want to reference.
 
-### Quantum Pointer
-
-A quantum pointer is an unsigned integer that **represents an address of a quantum register.** If your driver has only 3 quantum registers, an execution error will be thrown if it finds a quantum pointer outside the range "0" - "2".
-
-You can represent a quantum pointer in nyancat code like this:
-
-`0?`
-
-Where `0` is the quantum register id that you want to reference.
-
 ### Reserved Pointer
 
 A reserved (classical) pointer is an unsigned integer that **represents an address of a reserved classical register.** As mentioned early, you can always know how many reserved registers will be allocated on your driver by using the constant `RESERVED_REGS` on your C code. If your driver has only 2 allocated reserved registers, trying to run an algorithm that has a reserved pointer that isn't "0" or "1" will fail.
@@ -95,6 +94,18 @@ You can represent a classical pointer in nyancat code like this:
 `0%`
 
 Where `0` is the reserved register id that you want to reference.
+
+:warning: Although reserved pointers have some special conditions, they are still interpreted as classical pointers.
+
+### Quantum Pointer
+
+A quantum pointer is an unsigned integer that **represents an address of a quantum register.** If your driver has only 3 quantum registers, an execution error will be thrown if it finds a quantum pointer outside the range "0" - "2".
+
+You can represent a quantum pointer in nyancat code like this:
+
+`0?`
+
+Where `0` is the quantum register id that you want to reference.
 
 ## Tasks
 Tasks (a.k.a. assembly's instructions) are calls to native functions that run classical or quantum operations on registers.

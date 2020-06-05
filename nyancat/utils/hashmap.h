@@ -28,6 +28,8 @@ typedef struct _hashmap{
     hashnode *first;
 } hashmap;
 
+#define MAX_KEY_LENGTH 1<<8
+
 hashmap *new_hashmap(void);
 hashnode *new_hashnode(char *key, unsigned val);
 bool put_hashnode(hashmap *h, hashnode *n);
@@ -66,7 +68,7 @@ bool put_hashnode(hashmap *h, hashnode *n) {
     }
 
     while(temp->next) {
-        if(strcmp(temp->key, n->key)) return false;
+        if(strcmp(temp->key, n->key) == 0) return false;
         temp = temp->next;
     }
     temp->next = n;
@@ -82,7 +84,7 @@ bool rem_key_from_hashmap(hashmap *h, char *key) {
     hashnode *temp = h->first;
     if(h->size <= 0 || !temp) return false;
 
-    if(strcmp(temp->key, key)) {
+    if(strcmp(temp->key, key) == 0) {
         h->first = temp->next;
         free(temp);
         h->size--;
@@ -94,7 +96,7 @@ bool rem_key_from_hashmap(hashmap *h, char *key) {
     do {
         prev = temp;
         temp = temp->next;
-        if(strcmp(temp->key, key)) {
+        if(strcmp(temp->key, key) == 0) {
             prev->next = temp->next;
             free(temp);
             h->size--;
@@ -112,11 +114,11 @@ unsigned get_val_from_hashmap(hashmap *h, char *key) {
     if(!temp) return 0;
 
     while(temp->next) {
-        if(strcmp(temp->key, key)) return temp->val;
+        if(strcmp(temp->key, key) == 0) return temp->val;
         temp = temp->next;
     }
     
-    if(strcmp(temp->key, key)) return temp->val;
+    if(strcmp(temp->key, key) == 0) return temp->val;
     return 0;
 }
 
@@ -144,11 +146,11 @@ hashnode *get_hashnode_from_hashmap(hashmap *h, char *key) {
     if(!temp) return NULL;
 
     while(temp->next) {
-        if(strcmp(temp->key, key)) return temp;
+        if(strcmp(temp->key, key) == 0) return temp;
         temp = temp->next;
     }
     
-    if(strcmp(temp->key, key)) return temp;
+    if(strcmp(temp->key, key) == 0) return temp;
     return NULL;
 }
 
@@ -156,18 +158,26 @@ hashnode *get_hashnode_from_hashmap(hashmap *h, char *key) {
 bool put_val_on_hashmap(hashmap *h, char *key, unsigned val) {
     if(!h) return false;
     
+    hashnode *temp = h->first;
+
+    while(temp) {
+        if(strcmp(temp->key, key) == 0) return false;
+        temp = temp->next;
+    }
+
     hashnode *n = malloc(sizeof(hashnode));
-    n->key = key;
+    n->key = malloc(sizeof(char) * MAX_KEY_LENGTH);
+    n->key[0] = '\0';
+    strcpy(n->key, key);
     n->val = val;
     n->next = NULL;
 
-    hashnode *temp = h->first;
+    temp = h->first;
     if(h->size <= 0 || !temp) {
         h->first = n;
         h->size = 1;
         return true;
     }
-
     while(temp->next) temp = temp->next;
     temp->next = n;
     h->size++;

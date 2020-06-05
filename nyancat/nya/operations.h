@@ -10,7 +10,7 @@ typedef enum _nyanParam {
 } nyanParam;
 
 typedef struct nyanTask {
-    char        code[MAX_TASK_LENGTH];
+    char        name[MAX_TASK_LENGTH];
     nyanParam   params[MAX_PARAMS_COUNT];
 } nyanTask;
 
