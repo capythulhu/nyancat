@@ -52,9 +52,7 @@ Here is how a label is declared in nyancat code:
 
 `Foo`
 
-I mean, it seems basic (and it is) but look closer. **A label declaration must always start with an upper-case letter.** We recommend you to use Pascal Case.
-
-You can reference labels that weren't declarated before your current line, as long as every label has an unique name. **There can only be one label declaration per line.**
+I mean, it seems basic (and it is) but look closer. **A label declaration must always start with an upper-case letter.** We recommend you to use Pascal Case. You can reference labels that weren't declared before your current line, as long as every label has an unique name. **There can only be one label declaration per line.**
 
 You can jump through labels using jump tasks, of which we'll talk about very soon.
 
@@ -67,12 +65,12 @@ Not everything is a constant. Let's say that you want to perform a certain quant
 
 In contrast with labels, it is not possible to reference an argument that wasn't declared previously.
 
-You can declarate many arguments, many times, but **only once per line.** Trying to open another pair of angle brackets (`<>`) on the same line will cause your code to not work.
+You can declare many arguments, many times, but **only once per line.** Trying to open another pair of angle brackets (`<>`) on the same line will cause your code to not work.
 
 ## Values and Pointers
 Right now, the only plain values that you can write on your code are numeric, discrete values. You can write signed integers up to 4 bytes (`sizeof(int)` in C).
 
-:warning: Just like a plain number, an argument reference is considered a plain numeric value.
+:warning: Just like a plain number, an argument reference is considered a literal numeric value.
 
 However, differently from C, there are three types of pointers.
 
