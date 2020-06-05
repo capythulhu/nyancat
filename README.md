@@ -1,4 +1,7 @@
-![logo](https://raw.githubusercontent.com/thzoid/vscode-nyancat/master/icon.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/thzoid/vscode-nyancat/master/icon.png">
+</p>
+
 # Welcome to nyancat!
 **nyancat** is a C library that allows you to *simulate a quantum processor* and easily *write machine code for it!*
 
@@ -23,7 +26,9 @@ The driver's quantum memory would look like this:
 |----|------------------|----------------|
 | 0  | Quantum Register | Measure and perform spin operations. |
 | 1  | Quantum Register | Measure and perform spin operations. |
+
 And the classical memory, like this:
+
 | Id | Type                        | Access                           |
 |----|-----------------------------|----------------------------------|
 | 0  | Classical Register          | Read and write.                   |
