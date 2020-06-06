@@ -61,7 +61,7 @@ Not everything is a constant. Let's say that you want to perform a certain quant
 
 `< foo, bar >`
 
-**Arguments must start with a lower-case letter.** We recommend you to use Camel Case.
+**Arguments must start with a lower-case letter or an underscore.** We recommend you to use Camel Case.
 
 In contrast with labels, it is not possible to reference an argument that wasn't declared previously.
 

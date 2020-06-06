@@ -11,7 +11,7 @@ typedef enum _nyanParam {
 
 typedef struct nyanTask {
     char        name[MAX_TASK_LENGTH];
-    nyanParam   params[MAX_PARAMS_COUNT];
+    nyanParam   parameters[MAX_PARAMS_COUNT];
 } nyanTask;
 
 static const nyanTask nyanTasks[] = {

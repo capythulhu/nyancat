@@ -43,14 +43,19 @@ typedef enum _nyanError {
     GENERAL_NOT_NYA,
     GENERAL_ILLEGAL_CHAR,
     ARGUMENT_ILLEGAL,
+    ARGUMENT_UNKNOWN,
     ARGUMENT_DUPLICATED,
     ARGUMENT_NO_COMMA,
     ARGUMENT_UNNECESSARY,
     ARGUMENT_NO_ANGLE_BRACKET,
     LABEL_ILLEGAL,
+    LABEL_UNKNOWN,
     LABEL_DUPLICATED,
     TASK_ILLEGAL,
-    TASK_UNKNOWN
+    TASK_UNKNOWN,
+    TASK_UNEXPECTED_PARAM,
+    TASK_MISSING_PARAMS,
+    TASK_EXCESSIVE_PARAMS
 } nyanError;
 
 typedef enum _nyanLine {
@@ -77,7 +82,6 @@ void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool
         while(j < sizeof(line)
             && line[j] != '\0'
             && line[j] != '\n') {
-            
             if(onBlockComment) {
                 // Checks if the character ends block comment
                 if(line[j] == '*'
@@ -96,6 +100,7 @@ void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool
                     onBlockComment = true;
                     continue;
                 }
+
                 // Checks if the character is an in-line comment
                 if(line[j] == '/'
                     && line[j + 1] == '/') {
@@ -113,14 +118,7 @@ void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool
                     && line[j] <= 'z') {
                     // Doesn't declare tasks on pre compiling
                     if(preCompile) break;
-                    // If line has already another function, throw an error
-                    if(*errorId == NO_ERRORS
-                            && k != LINE_UNDEFINED) {
-                        *errorId = TASK_ILLEGAL;
-                        break;
-                    }
-                    // Makes line a task line
-                    k = LINE_TASK;
+
                     // Allocates a buffer for the name
                     char *taskBuffer = malloc(sizeof(char) * MAX_TASK_LENGTH);
                     taskBuffer[0] = '\0';
@@ -138,6 +136,14 @@ void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool
                     }
                     // If task is valid, start reading it's parameters
                     if(l >= 0) {
+                        // If line has already another function, throw an error
+                        if(*errorId == NO_ERRORS
+                                && k != LINE_UNDEFINED) {
+                            *errorId = TASK_ILLEGAL;
+                            break;
+                        }
+                        // Makes line a task line
+                        k = LINE_TASK;
                         // Parameter counter
                         int m = 0;
                         // Parameter types
@@ -148,6 +154,13 @@ void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool
                             && line[j] != '\n') {
                             // If it's a whitespace, ignore it
                             while(line[j] == ' ') j++;
+                            // If the task is already filled with parameters, break
+                            if(*errorId == NO_ERRORS
+                                && (nyanTasks[l].parameters == TYPE_VOID
+                                    || l>= MAX_PARAMS_COUNT)) {
+                                *errorId = TASK_EXCESSIVE_PARAMS;
+                                break;
+                            }
                             // If it's a number, identify it
                             if(line[j] >= '0'
                                 && line[j] <= '9'){
@@ -161,14 +174,21 @@ void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool
                                         j++;
                                         // If the parameter ends properly
                                         if(j >= sizeof(line)
-                                            || line[j] != '\0'
-                                            || line[j] != '\n'
-                                            || line[j] != ' ') {
+                                            || line[j] == '\0'
+                                            || line[j] == '\n'
+                                            || line[j] == ' ') {
                                             // Sets the parameter type to classical
                                             parameters[m] = TYPE_BIT;
-                                            // Goes to the next parameter
-                                            m++;
-                                            continue;
+                                            // If task expected classical, continues
+                                            if(nyanTasks[l].parameters[m] ==
+                                                parameters[m]) {
+                                                // Goes to the next parameter
+                                                m++;
+                                                continue;
+                                            } else if(*errorId == NO_ERRORS) {
+                                                *errorId = TASK_UNEXPECTED_PARAM;
+                                                break;
+                                            }
                                         }
                                 // Checks if it's a quantum register
                                 } else if(line[j] == '?') {
@@ -176,27 +196,147 @@ void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool
                                     j++;
                                     // If the parameter ends properly
                                     if(j >= sizeof(line)
-                                        || line[j] != '\0'
-                                        || line[j] != '\n'
-                                        || line[j] != ' ') {
+                                        || line[j] == '\0'
+                                        || line[j] == '\n'
+                                        || line[j] == ' ') {
                                         // Sets the parameter type to quantum
                                         parameters[m] = TYPE_QUBIT;
+                                        // If task expected quantum, continues
+                                        if(nyanTasks[l].parameters[m] ==
+                                            parameters[m]) {
+                                            // Goes to the next parameter
+                                            m++;
+                                            continue;
+                                        } else if(*errorId == NO_ERRORS) {
+                                            *errorId = TASK_UNEXPECTED_PARAM;
+                                            break;
+                                        }
+                                    }
+                                } else if(j >= sizeof(line)
+                                        || line[j] == '\0'
+                                        || line[j] == '\n'
+                                        || line[j] == ' ') {
+                                    // Sets the parameter type to value
+                                    parameters[m] = TYPE_VAL;
+                                    // If task expected value, continues
+                                    if(nyanTasks[l].parameters[m] ==
+                                        parameters[m]) {
                                         // Goes to the next parameter
                                         m++;
                                         continue;
+                                    } else if(*errorId == NO_ERRORS) {
+                                        *errorId = TASK_UNEXPECTED_PARAM;
+                                        break;
                                     }
                                 }
                             }
-                            if(line[j] >= 'a'
-                                && line[j] <= 'z'){
-                                parameters[m] = TYPE_VAL;
+                            // If it's an argument, identify it
+                            if(line[j] == '_'
+                                || (line[j] >= 'a'
+                                    && line[j] <= 'z')) {
+                                // Allocates a buffer for the argument name
+                                char *argumentBuffer =
+                                    malloc(sizeof(char) * MAX_ARGUMENT_LENGTH);
+                                argumentBuffer[0] = '\0';
+                                // Iterate until the character isn't valid
+                                while(line[j] == '_'
+                                || (line[j] >= 'a'
+                                    && line[j] <= 'z')
+                                || (line[j] >= 'A'
+                                    && line[j] <= 'Z')) {
+                                    // Appends character to buffer array
+                                    sprintf(argumentBuffer, "%s%c",
+                                        argumentBuffer, line[j]);
+                                    j++;
+                                }
+                                // If the parameter ends properly
+                                if(j >= sizeof(line)
+                                    || line[j] == '\0'
+                                    || line[j] == '\n'
+                                    || line[j] == ' ') {
+                                    // Checks if the argument was delcared previously
+                                    int index = get_val_from_hashmap(arguments, 
+                                        argumentBuffer);
+                                    // If it exists, replace it with it's value
+                                    if(index >= 0) {
+                                        parameters[m] = TYPE_VAL;
+                                        // If task expected argument, continues
+                                        if(nyanTasks[l].parameters[m] ==
+                                            parameters[m]) {
+                                            // Goes to the next parameter
+                                            m++;
+                                            continue;
+                                        } else if(*errorId == NO_ERRORS) {
+                                            *errorId = TASK_UNEXPECTED_PARAM;
+                                            break;
+                                        }
+                                    } else if (*errorId == NO_ERRORS) {
+                                        *errorId = ARGUMENT_UNKNOWN;
+                                        break;
+                                    }
+                                }
                             }
+                            // If it's a label, identify it
                             if(line[j] >= 'A'
-                                && line[j] <= 'Z'){
-                                parameters[m] = TYPE_LABEL;
+                                    && line[j] <= 'Z') {
+                                // Allocates a buffer for the argument name
+                                char *labelBuffer =
+                                    malloc(sizeof(char) * MAX_LABEL_LENGTH);
+                                labelBuffer[0] = '\0';
+                                // Iterate until the character isn't valid
+                                while(line[j] == '_'
+                                || (line[j] >= 'a'
+                                    && line[j] <= 'z')
+                                || (line[j] >= 'A'
+                                    && line[j] <= 'Z')) {
+                                    // Appends character to buffer array
+                                    sprintf(labelBuffer, "%s%c",
+                                        labelBuffer, line[j]);
+                                    j++;
+                                }
+                                // If the parameter ends properly
+                                if(j >= sizeof(line)
+                                    || line[j] == '\0'
+                                    || line[j] == '\n'
+                                    || line[j] == ' ') {
+                                    // Checks if the label exists
+                                    int index = get_val_from_hashmap(labels, 
+                                        labelBuffer);
+                                    // If it exists, replace it with it's value
+                                    if(index >= 0) {
+                                        parameters[m] = TYPE_LABEL;
+                                        // If task expected argument, continues
+                                        if(nyanTasks[l].parameters[m] ==
+                                            parameters[m]) {
+                                            // Goes to the next parameter
+                                            m++;
+                                            continue;
+                                        } else if(*errorId == NO_ERRORS) {
+                                            *errorId = TASK_UNEXPECTED_PARAM;
+                                            break;
+                                        }
+                                    } else if (*errorId == NO_ERRORS) {
+                                        *errorId = ARGUMENT_UNKNOWN;
+                                        break;
+                                    }
+                                }
                             }
+                            break;
                         }
-                    } else if(*errorId == NO_ERRORS) {
+                        bool expectedParameters = true;
+                        for(m = 0; m < MAX_PARAMS_COUNT; m++) {
+                            if(expectedParameters)
+                                expectedParameters = parameters[m] ==
+                                    nyanTasks[l].parameters[m];
+                        }
+                        if(expectedParameters) {
+                            continue;
+                        } else if(*errorId == NO_ERRORS){
+                            *errorId = TASK_MISSING_PARAMS;
+                            break;
+                        }
+                    } else if(*errorId == NO_ERRORS
+                        && k == LINE_UNDEFINED) {
                         *errorId = TASK_UNKNOWN;
                         break;
                     }
@@ -205,14 +345,14 @@ void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool
                 // Identifies declaring labels
                 if(line[j] >= 'A'
                     && line[j] <= 'Z') {
-                    // Doesn't declare labels on compiling
-                    if(!preCompile) break;
                     // If line has already another function, throw an error
                     if(*errorId == NO_ERRORS
                         && k != LINE_UNDEFINED) {
                         *errorId = LABEL_ILLEGAL;
                         break;
                     }
+                    // Doesn't declare labels on compiling
+                    if(!preCompile) break;
                     // Makes line a label declaration line
                     k = LINE_LABEL;
                     // Allocates a buffer for the name
@@ -330,12 +470,14 @@ void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool
                             // Goes to next character
                             j++;
                         }
-                    } while(line[j] == ' '
+                    } while(!closedDeclaration
+                        && (line[j] == ' '
                         || line[j] == ','
-                        || line[j] == '>');
+                        || line[j] == '>'));
                     // Frees buffer
                     free(argumentBuffer);
-                    if(line[j] == '\0'
+                    if(j >= strlen(line)
+                        || line[j] == '\0'
                         || line[j] == '\n') {
                         // If there's no closing bracket, throw error
                         if(*errorId == NO_ERRORS
@@ -343,8 +485,8 @@ void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool
                             *errorId = ARGUMENT_NO_ANGLE_BRACKET;
                             break;
                         }
-                        continue;
                     }
+                    continue;
                 }
                 
                 // Identifies character as loose
@@ -392,13 +534,13 @@ algorithm load_script(char *path) {
         int l;
         hashnode *temp;
         
-        printf("nyancat: lexing succeeded.\n");
+        printf("nyancat: lexing succeeded c:\n");
         printf("%i params:\n", params->size);
         
         l = 0;
         temp = params->first;
         while(temp) {
-            printf("\t%s : %i\n", temp->key, l++);
+            printf("\t%i : %s\n", l++, temp->key);
             temp = temp->next;
         }
 
@@ -407,50 +549,65 @@ algorithm load_script(char *path) {
         l = 0;
         temp = labels->first;
         while(temp) {
-            printf("\t%s : %i\n", temp->key, l++);
+            printf("\t%i : %s\n", l++, temp->key);
             temp = temp->next;
         }
     } else {
         char *errorMsg;
         switch(errorId) {
             case GENERAL_NOT_NYA:
-                errorMsg = "File does not exist or is not a .nya script.";
+                errorMsg = "There isn't a .nya script named that way.";
                 break;
             case GENERAL_ILLEGAL_CHAR:
-                errorMsg = "Illegal loose character.";
+                errorMsg = "There's a purposeless loose character on your code.";
                 break;
             case ARGUMENT_ILLEGAL:
-                errorMsg = "Illegal argument declaration.";
+                errorMsg = "It isn't allowed to declare arguments that way! (Maybe you're doing two stuff in one line?)";
+                break;
+             case ARGUMENT_UNKNOWN:
+                errorMsg = "It doesn't seem like there's a declared argument with that name.";
                 break;
             case ARGUMENT_DUPLICATED:
-                errorMsg = "Non-unique argument name declaration.";
+                errorMsg = "There's a cloned argument.";
                 break;
             case ARGUMENT_NO_COMMA:
-                errorMsg = "No comma on argument declaration.";
+                errorMsg = "Your arguments declaration is missing a comma!";
                 break;
             case ARGUMENT_UNNECESSARY:
-                errorMsg = "Unnecessary statement in argument declaration.";
+                errorMsg = "There's an unecessary character on your arguments declaration. Take it out!";
                 break;   
             case ARGUMENT_NO_ANGLE_BRACKET:
-                errorMsg = "Missing angle bracket.";
+                errorMsg = "It seems that you forgot to \"close\" your arguments declaration.";
                 break;    
             case LABEL_ILLEGAL:
-                errorMsg = "Illegal label declaration.";
+                errorMsg = "It isn't allowed to declare labels that way! (Maybe you're doing two stuff on the same line?)";
+                break;
+            case LABEL_UNKNOWN:
+                errorMsg = "It doesn't seem like there's a label with that name.";
                 break;
             case LABEL_DUPLICATED:
-                errorMsg = "Non-unique label name declaration.";
+                errorMsg = "There's a cloned label.";
                 break;
             case TASK_ILLEGAL:
-                errorMsg = "Illegal task call.";
+                errorMsg = "It isn't allowed to call tasks that way! (Maybe you're doing two stuff on the same line?)";
                 break;
             case TASK_UNKNOWN:
-                errorMsg = "Unknown task call.";
+                errorMsg = "It doesn't seem like there's a task with that name.";
+                break;
+            case TASK_UNEXPECTED_PARAM:
+                errorMsg = "The called task doesn't ask for that type of parameter.";
+                break;
+            case TASK_MISSING_PARAMS:
+                errorMsg = "The task you've called asks for more parameters than you provided.";
+                break;
+            case TASK_EXCESSIVE_PARAMS:
+                errorMsg = "Too much parameters for the task you've called.";
                 break;
             default:
-                errorMsg = "Unknown error.";
+                errorMsg = "Unknown error. What are you doing there? e_e";
                 break;
         }
-        printf("nyancat: lexing failed.\n");
+        printf("nyancat: lexing failed :c\n");
         printf("error: %s\n", errorMsg);
     }
     return a;
