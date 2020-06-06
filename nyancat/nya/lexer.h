@@ -66,7 +66,7 @@ typedef enum _nyanLine {
 } _nyanLine;
 
 // Lexes a .nya script
-void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool preCompile) {
+void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *arguments, bool preCompile) {
     // Line buffer
     char line[MAX_LINE_LENGTH];
     // If the line is inside a block comment
@@ -164,9 +164,16 @@ void lex_script(FILE *f, int *errorId, hashmap *labels, hashmap *arguments, bool
                             // If it's a number, identify it
                             if(line[j] >= '0'
                                 && line[j] <= '9'){
+                                // Allocates a buffer for the number name
+                                char *numberBuffer =
+                                    malloc(sizeof(char) * MAX_TASK_LENGTH);
+                                numberBuffer[0] = '\0';
                                 // Iterate until the character isn't a number
                                 while(line[j] >= '0'
-                                    && line[j] <= '9') j++;
+                                    && line[j] <= '9') {
+                                    sprintf(numberBuffer, "%s%i", line[j]);
+                                    j++;
+                                }
                                 // Checks it's a classical register (reserved or not)
                                 if(line[j] == '!'
                                     || line[j] == '%') {
@@ -520,11 +527,11 @@ algorithm load_script(char *path) {
 
     if(f) {
         // Pre Compiling (finding labels)
-        lex_script(f, &errorId, labels, params, true);
+        lex_script(f, &a, &errorId, labels, params, true);
         // Rewinds the file
         rewind(f);
         // Actual compiling
-        lex_script(f, &errorId, labels, params, false);
+        lex_script(f, &a, &errorId, labels, params, false);
     } else {
         errorId = GENERAL_NOT_NYA;
     }

@@ -1,6 +1,3 @@
-// Hadamards the qubit "0"
-h 0?
-// Measures the qubit "0"
-m 0?
-// Ends the algorithm, outputing the measurement result
-end 0%
+h 0?    // Hadamards the qubit "0"
+m 0?    // Measures the qubit "0"
+end 0%  // Ends the algorithm, outputing the measurement result
