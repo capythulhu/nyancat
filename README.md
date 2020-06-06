@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/thzoid/vscode-nyancat/master/icon.png">
+  <img src="https://raw.githubusercontent.com/thzoid/vscode-nyancat/master/icon_small.png">
 </p>
 
 # Welcome to nyancat!
