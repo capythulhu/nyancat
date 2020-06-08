@@ -25,7 +25,6 @@
 #include "../utils/hashmap.h"
 #include "../utils/list.h"
 
-#define MAX_ERROR_LENGTH    1<<8
 #define MAX_LINE_LENGTH     1<<8
 #define MAX_ARGUMENT_LENGTH 1<<7
 #define MAX_LABEL_LENGTH    1<<7
@@ -35,27 +34,6 @@ typedef struct _nyanResult {
     int qtotal;
     int ctotal;
 } nyanResult;
-
-typedef enum _nyanError {
-    NO_ERRORS = -1,
-    GENERAL_NOT_NYA,
-    GENERAL_ILLEGAL_CHAR,
-    ARGUMENT_ILLEGAL,
-    ARGUMENT_UNKNOWN,
-    ARGUMENT_DUPLICATED,
-    ARGUMENT_NO_COMMA,
-    ARGUMENT_UNNECESSARY,
-    ARGUMENT_NO_ANGLE_BRACKET,
-    ARGUMENT_LOOSE_REFERENCE,
-    LABEL_ILLEGAL,
-    LABEL_UNKNOWN,
-    LABEL_DUPLICATED,
-    TASK_ILLEGAL,
-    TASK_UNKNOWN,
-    TASK_UNEXPECTED_PARAM,
-    TASK_MISSING_PARAMS,
-    TASK_EXCESSIVE_PARAMS
-} nyanError;
 
 typedef enum _nyanLine {
     LINE_UNDEFINED = -1,
@@ -68,7 +46,7 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
 nyanResult load_script(char *path, bool echo);
 
 // Lexes a .nya script
-void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *arguments, bool preBuild) {
+void lex_script(FILE *f, nyanResult *r, nyanBuildError *errorId, hashmap *labels, hashmap *arguments, bool preBuild) {
     // Line buffer
     char line[MAX_LINE_LENGTH];
     // If the line is inside a block comment
@@ -141,9 +119,9 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                         // Creates operation (parsing)
                         nyanOperation b = {l, { 0 }, { false }};
                         // If line has already another function, throw an error
-                        if(*errorId == NO_ERRORS
+                        if(*errorId == BUILD_ERR_NO_ERRORS
                                 && k != LINE_UNDEFINED) {
-                            *errorId = TASK_ILLEGAL;
+                            *errorId = BUILD_ERR_TASK_ILLEGAL;
                             break;
                         }
                         // Makes line a task line
@@ -167,9 +145,9 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                             if(line[j] >= '0'
                                 && line[j] <= '9'){
                                 // If the task is already filled with parameters, break
-                                if(*errorId == NO_ERRORS
+                                if(*errorId == BUILD_ERR_NO_ERRORS
                                     && m >= n) {
-                                    *errorId = TASK_EXCESSIVE_PARAMS;
+                                    *errorId = BUILD_ERR_TASK_EXCESSIVE_PARAMS;
                                     break;
                                 }
                                 // Allocates a buffer for the number name
@@ -207,8 +185,8 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                                                 // Goes to the next parameter
                                                 m++;
                                                 continue;
-                                            } else if(*errorId == NO_ERRORS) {
-                                                *errorId = TASK_UNEXPECTED_PARAM;
+                                            } else if(*errorId == BUILD_ERR_NO_ERRORS) {
+                                                *errorId = BUILD_ERR_TASK_UNEXPECTED_PARAM;
                                                 break;
                                             }
                                         }
@@ -234,8 +212,8 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                                             // Goes to the next parameter
                                             m++;
                                             continue;
-                                        } else if(*errorId == NO_ERRORS) {
-                                            *errorId = TASK_UNEXPECTED_PARAM;
+                                        } else if(*errorId == BUILD_ERR_NO_ERRORS) {
+                                            *errorId = BUILD_ERR_TASK_UNEXPECTED_PARAM;
                                             break;
                                         }
                                     }
@@ -252,8 +230,8 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                                         // Goes to the next parameter
                                         m++;
                                         continue;
-                                    } else if(*errorId == NO_ERRORS) {
-                                        *errorId = TASK_UNEXPECTED_PARAM;
+                                    } else if(*errorId == BUILD_ERR_NO_ERRORS) {
+                                        *errorId = BUILD_ERR_TASK_UNEXPECTED_PARAM;
                                         break;
                                     }
                                 }
@@ -263,14 +241,14 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                                 || (line[j] >= 'a'
                                     && line[j] <= 'z')) {
                                 // If the task is already filled with parameters, break
-                                if(*errorId == NO_ERRORS
+                                if(*errorId == BUILD_ERR_NO_ERRORS
                                     && m >= n) {
-                                    *errorId = TASK_EXCESSIVE_PARAMS;
+                                    *errorId = BUILD_ERR_TASK_EXCESSIVE_PARAMS;
                                     break;
-                                } else if (*errorId == NO_ERRORS
+                                } else if (*errorId == BUILD_ERR_NO_ERRORS
                                     && nyanTasks[l].parameters[m] != TYPE_VAL) {
                                     // If task didn't expected this value, continues
-                                    *errorId = TASK_UNEXPECTED_PARAM;
+                                    *errorId = BUILD_ERR_TASK_UNEXPECTED_PARAM;
                                     break;
                                 }
                                 // Allocates a buffer for the argument name
@@ -304,8 +282,8 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                                         // Goes to the next parameter
                                         m++;
                                         continue;
-                                    } else if (*errorId == NO_ERRORS) {
-                                        *errorId = ARGUMENT_UNKNOWN;
+                                    } else if (*errorId == BUILD_ERR_NO_ERRORS) {
+                                        *errorId = BUILD_ERR_ARGUMENT_UNKNOWN;
                                         break;
                                     }
                                 }
@@ -314,14 +292,14 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                             if(line[j] >= 'A'
                                 && line[j] <= 'Z') {
                                 // If the task is already filled with parameters, break
-                                if(*errorId == NO_ERRORS
+                                if(*errorId == BUILD_ERR_NO_ERRORS
                                     && m >= n) {
-                                    *errorId = TASK_EXCESSIVE_PARAMS;
+                                    *errorId = BUILD_ERR_TASK_EXCESSIVE_PARAMS;
                                     break;
-                                } else if (*errorId == NO_ERRORS
+                                } else if (*errorId == BUILD_ERR_NO_ERRORS
                                     && nyanTasks[l].parameters[m] != TYPE_LABEL) {
                                     // If task didn't expected this value, breaks
-                                    *errorId = TASK_UNEXPECTED_PARAM;
+                                    *errorId = BUILD_ERR_TASK_UNEXPECTED_PARAM;
                                     break;
                                 }
                                 // Allocates a buffer for the argument name
@@ -355,8 +333,8 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                                         // Goes to the next parameter
                                         m++;
                                         continue;
-                                    } else if (*errorId == NO_ERRORS) {
-                                        *errorId = LABEL_UNKNOWN;
+                                    } else if (*errorId == BUILD_ERR_NO_ERRORS) {
+                                        *errorId = BUILD_ERR_LABEL_UNKNOWN;
                                         break;
                                     }
                                 }
@@ -366,8 +344,8 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                         if(m == n) {
                             put_val_on_list(r->algorithm, b);
                             continue;
-                        } else if(*errorId == NO_ERRORS){
-                            *errorId = TASK_MISSING_PARAMS;
+                        } else if(*errorId == BUILD_ERR_NO_ERRORS){
+                            *errorId = BUILD_ERR_TASK_MISSING_PARAMS;
                             break;
                         }
                     } else {
@@ -376,12 +354,12 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                             taskBuffer);
                         
                         if(index >= 0) {
-                            if(*errorId == NO_ERRORS) {
-                                *errorId = ARGUMENT_LOOSE_REFERENCE;
+                            if(*errorId == BUILD_ERR_NO_ERRORS) {
+                                *errorId = BUILD_ERR_ARGUMENT_LOOSE_REFERENCE;
                                 break;
                             }
-                        } else if(*errorId == NO_ERRORS) {
-                            *errorId = TASK_UNKNOWN;
+                        } else if(*errorId == BUILD_ERR_NO_ERRORS) {
+                            *errorId = BUILD_ERR_TASK_UNKNOWN;
                             break;
                         }
                     }
@@ -391,9 +369,9 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                 if(line[j] >= 'A'
                     && line[j] <= 'Z') {
                     // If line has already another function, throw an error
-                    if(*errorId == NO_ERRORS
+                    if(*errorId == BUILD_ERR_NO_ERRORS
                         && k != LINE_UNDEFINED) {
-                        *errorId = LABEL_ILLEGAL;
+                        *errorId = BUILD_ERR_LABEL_ILLEGAL;
                         break;
                     }
                     // Doesn't declare labels on building
@@ -423,9 +401,9 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                             labelBuffer,
                             r->algorithm->size + 1
                         );
-                        if(*errorId == NO_ERRORS
+                        if(*errorId == BUILD_ERR_NO_ERRORS
                             && !success) {
-                            *errorId = LABEL_DUPLICATED;
+                            *errorId = BUILD_ERR_LABEL_DUPLICATED;
                             break;
                         }
                         // Frees buffer
@@ -439,9 +417,9 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                     // Doesn't declare arguments on pre building
                     if(preBuild) break;
                     // If line has already another function, throw an error
-                    if(*errorId == NO_ERRORS
+                    if(*errorId == BUILD_ERR_NO_ERRORS
                         && k != LINE_UNDEFINED) {
-                        *errorId = ARGUMENT_ILLEGAL;
+                        *errorId = BUILD_ERR_ARGUMENT_ILLEGAL;
                         break;
                     }
                     // Makes line a argument declaration line
@@ -472,9 +450,9 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                                     arguments->size
                                 );
                                 // If it's duplicated, throw error
-                                if(*errorId == NO_ERRORS
+                                if(*errorId == BUILD_ERR_NO_ERRORS
                                     && !success) {
-                                    *errorId = ARGUMENT_DUPLICATED;
+                                    *errorId = BUILD_ERR_ARGUMENT_DUPLICATED;
                                     break;
                                 }
                                 // Finishes argument declaration
@@ -486,8 +464,8 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                                 j++;
                                 // Resets buffer
                                 argumentBuffer[0] = '\0';
-                            } else if (*errorId == NO_ERRORS) {
-                                *errorId = ARGUMENT_UNNECESSARY;
+                            } else if (*errorId == BUILD_ERR_NO_ERRORS) {
+                                *errorId = BUILD_ERR_ARGUMENT_UNNECESSARY;
                                 break;
                             }
                         }
@@ -501,10 +479,10 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                                 && line[j] <= '9')
                             || line[j] == '_') {
                             // Report error if last param is unfinished
-                            if(*errorId == NO_ERRORS
+                            if(*errorId == BUILD_ERR_NO_ERRORS
                                 && foundArgument
                                 && foundWhitespace) {
-                                *errorId = ARGUMENT_NO_COMMA;
+                                *errorId = BUILD_ERR_ARGUMENT_NO_COMMA;
                                 break;
                             }
                             // Current character is not a whitespace
@@ -526,9 +504,9 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                         || line[j] == '\0'
                         || line[j] == '\n') {
                         // If there's no closing bracket, throw error
-                        if(*errorId == NO_ERRORS
+                        if(*errorId == BUILD_ERR_NO_ERRORS
                             && !closedDeclaration) {
-                            *errorId = ARGUMENT_NO_ANGLE_BRACKET;
+                            *errorId = BUILD_ERR_ARGUMENT_NO_ANGLE_BRACKET;
                             break;
                         }
                     }
@@ -536,9 +514,9 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
                 }
                 
                 // Identifies character as loose
-                if(*errorId == NO_ERRORS) {
+                if(*errorId == BUILD_ERR_NO_ERRORS) {
                     printf("a: %c\n", line[j]);
-                    *errorId = GENERAL_ILLEGAL_CHAR;
+                    *errorId = BUILD_ERR_GENERAL_ILLEGAL_CHAR;
                 }
                 break;
             }
@@ -550,7 +528,7 @@ void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *
 // Loads a .nya script
 nyanResult load_script(char *path, bool echo) {
     // Build Error
-    int errorId = NO_ERRORS;
+    nyanBuildError errorId = BUILD_ERR_NO_ERRORS;
     // Result
     nyanResult r = { new_list(), 0, 0 };
 
@@ -572,7 +550,7 @@ nyanResult load_script(char *path, bool echo) {
         // Actual building
         lex_script(f, &r, &errorId, labels, params, false);
     } else {
-        errorId = GENERAL_NOT_NYA;
+        errorId = BUILD_ERR_GENERAL_NOT_NYA;
     }
     
     fclose(f);
@@ -617,65 +595,7 @@ nyanResult load_script(char *path, bool echo) {
             }
         }
     } else {
-        char *errorMsg;
-        switch(errorId) {
-            case GENERAL_NOT_NYA:
-                errorMsg = "There isn't a .nya script named that way.";
-                break;
-            case GENERAL_ILLEGAL_CHAR:
-                errorMsg = "There's a purposeless loose character on your code.";
-                break;
-            case ARGUMENT_ILLEGAL:
-                errorMsg = "It isn't allowed to declare arguments that way! (Maybe you're doing two stuff in one line?)";
-                break;
-             case ARGUMENT_UNKNOWN:
-                errorMsg = "It doesn't seem like there's a declared argument with that name.";
-                break;
-            case ARGUMENT_DUPLICATED:
-                errorMsg = "There's a cloned argument.";
-                break;
-            case ARGUMENT_NO_COMMA:
-                errorMsg = "Your arguments declaration is missing a comma!";
-                break;
-            case ARGUMENT_UNNECESSARY:
-                errorMsg = "There's an unecessary character on your arguments declaration. Take it out!";
-                break;   
-            case ARGUMENT_NO_ANGLE_BRACKET:
-                errorMsg = "It seems that you forgot to \"close\" your arguments declaration.";
-                break;  
-            case ARGUMENT_LOOSE_REFERENCE:
-                errorMsg = "There's a loose argument on your code. Did you mean to call a task?";
-                break;    
-            case LABEL_ILLEGAL:
-                errorMsg = "It isn't allowed to declare labels that way! (Maybe you're doing two stuff on the same line?)";
-                break;
-            case LABEL_UNKNOWN:
-                errorMsg = "It doesn't seem like there's a label with that name.";
-                break;
-            case LABEL_DUPLICATED:
-                errorMsg = "There's a cloned label.";
-                break;
-            case TASK_ILLEGAL:
-                errorMsg = "It isn't allowed to call tasks that way! (Maybe you're doing two stuff on the same line?)";
-                break;
-            case TASK_UNKNOWN:
-                errorMsg = "It doesn't seem like there's a task with that name.";
-                break;
-            case TASK_UNEXPECTED_PARAM:
-                errorMsg = "The called task doesn't ask for that type of parameter.";
-                break;
-            case TASK_MISSING_PARAMS:
-                errorMsg = "The task you've called asks for more parameters than you provided.";
-                break;
-            case TASK_EXCESSIVE_PARAMS:
-                errorMsg = "Too much parameters for the task you've called.";
-                break;
-            default:
-                errorMsg = "Unknown error. What are you doing there? e_e";
-                break;
-        }
-        printf("nyancat: build failed :c\n");
-        printf("error: %s\n", errorMsg);
+        print_build_error(errorId);
     }
     return r;
 }

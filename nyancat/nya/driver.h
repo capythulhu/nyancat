@@ -100,7 +100,7 @@ bool valid_creg(driver *d, int addr) {
 // Gets a qubit from driver
 qubit get_qubit(driver *d, int addr) {
     if(!valid_qreg(d, addr)) {
-        print_error(ERR_GET_QUBIT_NON_EXISTENT);
+        print_driver_error(DRIVER_ERR_GET_QUBIT_NON_EXISTENT);
         return (qubit){0, 0};
     }
     return d->qregs[addr];
@@ -109,7 +109,7 @@ qubit get_qubit(driver *d, int addr) {
 // Sets a qubit in driver
 bool set_qubit(driver *d, int addr, qubit q) {
     if(!valid_qreg(d, addr)) {
-        print_error(ERR_SET_QUBIT_NON_EXISTENT);
+        print_driver_error(DRIVER_ERR_SET_QUBIT_NON_EXISTENT);
         return false;
     }
     d->qregs[addr] = q;
@@ -119,11 +119,11 @@ bool set_qubit(driver *d, int addr, qubit q) {
 // Gets a bit from driver
 unsigned get_bit(driver *d, int addr) {
     if(addr >= REG(d, 1)) {
-        print_error(ERR_GET_FORBIDDEN_BIT);
+        print_driver_error(DRIVER_ERR_GET_FORBIDDEN_BIT);
         return false;
     }
     if(!valid_creg(d, addr)) {
-        print_error(ERR_GET_BIT_NON_EXISTENT);
+        print_driver_error(DRIVER_ERR_GET_BIT_NON_EXISTENT);
         return 0;
     }
     return d->cregs[addr];
@@ -132,11 +132,11 @@ unsigned get_bit(driver *d, int addr) {
 // Sets a qubit in driver
 bool set_bit(driver *d, int addr, unsigned b) {
     if(addr >= REG(d, 1)) {
-        print_error(ERR_SET_FORBIDDEN_BIT);
+        print_driver_error(DRIVER_ERR_SET_FORBIDDEN_BIT);
         return false;
     }
     if(!valid_creg(d, addr)) {
-        print_error(ERR_SET_BIT_NON_EXISTENT);
+        print_driver_error(DRIVER_ERR_SET_BIT_NON_EXISTENT);
         return false;
     }
     d->cregs[addr] = b;
@@ -242,7 +242,7 @@ bool process_operation(driver *d, nyanOperation c, int arguments[], bool echo) {
             else d->pointer++;
             return true;
         case OP_M:
-            apply_M(d, c.values[0], echo);
+            set_bit(d, REG(d, 0), apply_M(d, c.values[0], echo));
             d->pointer++;
             return true;
         case OP_H:
