@@ -30,8 +30,11 @@
 #define MAX_ARGUMENT_LENGTH 1<<7
 #define MAX_LABEL_LENGTH    1<<7
 #define MAX_PARAM_LENGTH    1<<6
-
-list *load_script(char *path);
+typedef struct _nyanResult {
+    list *algorithm;
+    int qtotal;
+    int ctotal;
+} nyanResult;
 
 typedef enum _nyanError {
     NO_ERRORS = -1,
@@ -61,8 +64,11 @@ typedef enum _nyanLine {
     LINE_TASK,
 } _nyanLine;
 
+void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *arguments, bool preBuild);
+nyanResult load_script(char *path, bool echo);
+
 // Lexes a .nya script
-void lex_script(FILE *f, list *a, int *errorId, hashmap *labels, hashmap *arguments, bool preBuild) {
+void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *arguments, bool preBuild) {
     // Line buffer
     char line[MAX_LINE_LENGTH];
     // If the line is inside a block comment
@@ -191,6 +197,10 @@ void lex_script(FILE *f, list *a, int *errorId, hashmap *labels, hashmap *argume
                                             // Saves value into operation
                                             b.values[m] = atoi(numberBuffer);
                                             b.specials[m] = isReserved;
+                                            // Keeps track of necessary register count
+                                            if(!isReserved && b.values[m] >= r->ctotal) {
+                                                r->ctotal = b.values[m] + 1;
+                                            }
                                             // If task expected classical, continues
                                             if(nyanTasks[l].parameters[m] ==
                                                 TYPE_BIT) {
@@ -217,6 +227,10 @@ void lex_script(FILE *f, list *a, int *errorId, hashmap *labels, hashmap *argume
                                             // Saves value into operation
                                             b.values[m] = atoi(numberBuffer);
                                             b.specials[m] = false;
+                                            // Keeps track of necessary qubit count
+                                            if(b.values[m] >= r->qtotal) {
+                                                r->qtotal = b.values[m] + 1;
+                                            }
                                             // Goes to the next parameter
                                             m++;
                                             continue;
@@ -350,7 +364,7 @@ void lex_script(FILE *f, list *a, int *errorId, hashmap *labels, hashmap *argume
                             break;
                         }
                         if(m == n) {
-                            put_val_on_list(a, b);
+                            put_val_on_list(r->algorithm, b);
                             continue;
                         } else if(*errorId == NO_ERRORS){
                             *errorId = TASK_MISSING_PARAMS;
@@ -407,7 +421,7 @@ void lex_script(FILE *f, list *a, int *errorId, hashmap *labels, hashmap *argume
                         bool success = put_val_on_hashmap(
                             labels,
                             labelBuffer,
-                            a->size
+                            r->algorithm->size + 1
                         );
                         if(*errorId == NO_ERRORS
                             && !success) {
@@ -534,11 +548,11 @@ void lex_script(FILE *f, list *a, int *errorId, hashmap *labels, hashmap *argume
 }
 
 // Loads a .nya script
-list *load_script(char *path) {
+nyanResult load_script(char *path, bool echo) {
     // Build Error
     int errorId = NO_ERRORS;
-    // General specials
-    list *a = new_list();
+    // Result
+    nyanResult r = { new_list(), 0, 0 };
 
     // Parameters
     hashmap *params = new_hashmap();
@@ -552,53 +566,55 @@ list *load_script(char *path) {
     // If opened file, starts building
     if(f) {
         // Pre building (finding labels)
-        lex_script(f, a, &errorId, labels, params, true);
+        lex_script(f, &r, &errorId, labels, params, true);
         // Rewinds the file
         rewind(f);
         // Actual building
-        lex_script(f, a, &errorId, labels, params, false);
+        lex_script(f, &r, &errorId, labels, params, false);
     } else {
         errorId = GENERAL_NOT_NYA;
     }
     
     fclose(f);
     if(errorId < 0) {      
-        printf("nyancat: build succeeded c:\n");
-        int i = 0;
-        listnode *temp = a->first;
-        while(temp && i < a->size) {
-            printf("\t%i|%s:", i, nyanTasks[temp->val.code].name);
-            // Calculates desired parameter quantity
-            int j = 0, k;
-            while(j < MAX_PARAM_LENGTH
-                && nyanTasks[temp->val.code].parameters[j] != TYPE_VOID) j++;
-            for(k = 0; k < j; k++) {
-                // Names parameter type
-                char *name;
-                switch(nyanTasks[temp->val.code].parameters[k]) {
-                    case TYPE_LABEL:
-                        name = "line";
-                        break;
-                    case TYPE_QUBIT:
-                        name = "qubit";
-                        break;
-                    case TYPE_BIT:
-                        name = temp->val.specials[k]
-                            ? temp->val.values[k]
-                                ? "ARR" : "TRR" : "register";
-                        break;
-                    case TYPE_VAL:
-                        name = temp->val.specials[k]
-                            ? "argument" : "value";
-                        break;
-                    default: name = "\0";
+        if(echo) {
+            printf("nyancat: build succeeded c:\n");
+            int i = 0;
+            listnode *temp = r.algorithm->first;
+            while(temp && i < r.algorithm->size) {
+                printf("\t%i|%s:", i, nyanTasks[temp->val.code].name);
+                // Calculates desired parameter quantity
+                int j = 0, k;
+                while(j < MAX_PARAM_LENGTH
+                    && nyanTasks[temp->val.code].parameters[j] != TYPE_VOID) j++;
+                for(k = 0; k < j; k++) {
+                    // Names parameter type
+                    char *name;
+                    switch(nyanTasks[temp->val.code].parameters[k]) {
+                        case TYPE_LABEL:
+                            name = "line";
+                            break;
+                        case TYPE_QUBIT:
+                            name = "qubit";
+                            break;
+                        case TYPE_BIT:
+                            name = temp->val.specials[k]
+                                ? temp->val.values[k]
+                                    ? "ARR" : "TRR" : "register";
+                            break;
+                        case TYPE_VAL:
+                            name = temp->val.specials[k]
+                                ? "argument" : "value";
+                            break;
+                        default: name = "\0";
+                    }
+                    // Prints parameter
+                    printf("\t%i (%8s)", temp->val.values[k], name);
                 }
-                // Prints parameter
-                printf("\t%i (%s)", temp->val.values[k], name);
+                printf("\n");
+                temp = temp->next;
+                i++;
             }
-            printf("\n");
-            temp = temp->next;
-            i++;
         }
     } else {
         char *errorMsg;
@@ -661,6 +677,6 @@ list *load_script(char *path) {
         printf("nyancat: build failed :c\n");
         printf("error: %s\n", errorMsg);
     }
-    return a;
+    return r;
 }
 #endif

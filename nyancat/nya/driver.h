@@ -32,8 +32,9 @@
 #endif
 
 #include "../math/qubit.h"
-#include "commands.h"
+#include "../utils/list.h"
 #include "errors.h"
+#include "operations.h"
 #include "lexer.h"
 
 #define RESERVED_REGS 2
@@ -60,8 +61,8 @@ bool apply_X(driver *d, int addr);
 bool apply_Y(driver *d, int addr);
 bool apply_Z(driver *d, int addr);
 int apply_M(driver *d, int addr, bool echo);
-bool process_command(driver *d, command c, bool echo);
-void process_algorithm(driver *d, command *alg, bool echo);
+bool process_operation(driver *d, nyanOperation c, int arguments[], bool echo);
+int process_algorithm(driver *d, list *a, int arguments[], bool echo);
 
 // Creates a new driver
 driver *new_driver(unsigned qtotal, unsigned ctotal) {
@@ -186,91 +187,93 @@ int apply_M(driver *d, int addr, bool echo) {
     return bit;
 }
 
-// Process a command line
-bool process_command(driver *d, command c, bool echo) {
+// Process an operation
+bool process_operation(driver *d, nyanOperation c, int arguments[], bool echo) {
     if(!d) return false;
-    switch(c.op) {
+    switch(c.code) {
         case OP_END:
-            d->cregs[REG(d, 1)] = get_bit(d, c.args[0]);
+            d->cregs[REG(d, 1)] = get_bit(d, c.specials[0]
+                ? REG(d, c.values[0]) : c.values[0]);
             return false;
+        case OP_MOV:            
+            set_bit(d, c.specials[1]
+                ? REG(d, c.values[1]) : c.values[1],
+                get_bit(d, c.specials[0]
+                    ? REG(d, c.values[0]) : c.values[0]));
+            d->pointer++;
+            return true;
         case OP_PUT:
-            set_bit(d, c.args[0], c.args[1]);
+            set_bit(d, c.specials[0]
+                ? REG(d, c.values[0]) : c.values[0], c.specials[1]
+                    ? arguments[c.values[1]] : c.values[1]);
             d->pointer++;
             return true;
-        case OP_MOV:
-            set_bit(d, c.args[1], get_bit(d, c.args[0]));
-            d->pointer++;
-            return true;
-        case OP_CMP:
+        case OP_CMP:            
             set_bit(d, REG(d, 0), 
-                get_bit(d, REG(d, 0)) > get_bit(d, c.args[0]) ? 1
-                : (get_bit(d, REG(d, 0)) == get_bit(d, c.args[0]) ? 0
-                : -1));
+                get_bit(d, REG(d, 0)) > get_bit(d, c.specials[0]
+                    ? REG(d, c.values[0]) : c.values[0]) ? 1
+                : (get_bit(d, REG(d, 0)) == get_bit(d, c.specials[0]
+                    ? REG(d, c.values[0]) : c.values[0]) ? 0
+                : -1));            
             d->pointer++;
             return true;
         case OP_JE:
-            if(get_bit(d, REG(d, 0)) == 0) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) == 0) d->pointer = c.values[0]; 
             else d->pointer++;
             return true;
         case OP_JNE:
-            if(get_bit(d, REG(d, 0)) != 0) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) != 0) d->pointer = c.values[0]; 
             else d->pointer++;
             return true;
         case OP_JG:
-            if(get_bit(d, REG(d, 0)) == 1) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) == 1) d->pointer = c.values[0]; 
             else d->pointer++;
             return true;
         case OP_JGE:
-            if(get_bit(d, REG(d, 0)) == 0 || get_bit(d, 1) == 1) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) == 0 || get_bit(d, 1) == 1) d->pointer = c.values[0]; 
             else d->pointer++;
             return true;
         case OP_JL:
-            if(get_bit(d, REG(d, 0)) == -1) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) == -1) d->pointer = c.values[0]; 
             else d->pointer++;
             return true;
         case OP_JLE:
-            if(get_bit(d, REG(d, 0)) == 0 || get_bit(d, REG(d, 0)) == -1) d->pointer = c.args[0]; 
+            if(get_bit(d, REG(d, 0)) == 0 || get_bit(d, REG(d, 0)) == -1) d->pointer = c.values[0]; 
             else d->pointer++;
             return true;
         case OP_M:
-            set_bit(d, REG(d, 0), apply_M(d, c.args[0], echo));
+            set_bit(d, REG(d, 0), apply_M(d, c.values[0], echo));
             d->pointer++;
             return true;
         case OP_H:
-            set_bit(d, REG(d, 0), apply_H(d, c.args[0]));
+            set_bit(d, REG(d, 0), apply_H(d, c.values[0]));
             d->pointer++;
             return true;
         case OP_X:
-            set_bit(d, REG(d, 0), apply_X(d, c.args[0]));
+            set_bit(d, REG(d, 0), apply_X(d, c.values[0]));
             d->pointer++;
             return true;
         case OP_Y:
-            set_bit(d, REG(d, 0), apply_Y(d, c.args[0]));
+            set_bit(d, REG(d, 0), apply_Y(d, c.values[0]));
             d->pointer++;
             return true;
         case OP_Z:
-            set_bit(d, REG(d, 0), apply_Z(d, c.args[0]));
+            set_bit(d, REG(d, 0), apply_Z(d, c.values[0]));
             d->pointer++;
             return true;
     }
 }
 
 // Process an algorithm
-void process_algorithm(driver *d, command *alg, bool echo) {
-    if(!d || !alg) return;
+int process_algorithm(driver *d, list *a, int arguments[], bool echo) {
+    if(!d || !a) return -1;
     d->pointer = 0;
     int i = false;
     do {
-        i = process_command(d, alg[d->pointer], echo);
+        i = process_operation(d, get_val_from_list(a, d->pointer), arguments, echo);
     } while(i == true);
     if(echo) printf("Algorithm finished with return code %i.\n", d->cregs[REG(d, 1)]);
+    return d->cregs[REG(d, 1)];
 }
-
-/*
-bool run(driver *d, char *path, int *args) {
-    bool res = load_script(path);
-    
-}
-*/
 
 #endif

@@ -39,4 +39,22 @@ static const nyanTask nyanTasks[] = {
     { "y",      { TYPE_QUBIT } },
     { "z",      { TYPE_QUBIT } },
 };
+
+static const enum _nyanOperations {
+    OP_END,
+    OP_MOV,
+    OP_PUT,
+    OP_CMP,
+    OP_JE,
+    OP_JNE,
+    OP_JG,
+    OP_JGE,
+    OP_JL,
+    OP_JLE,
+    OP_M,
+    OP_H,
+    OP_X,
+    OP_Y,
+    OP_Z
+} nyanOperations;
 #endif
