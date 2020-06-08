@@ -242,23 +242,23 @@ bool process_operation(driver *d, nyanOperation c, int arguments[], bool echo) {
             else d->pointer++;
             return true;
         case OP_M:
-            set_bit(d, REG(d, 0), apply_M(d, c.values[0], echo));
+            apply_M(d, c.values[0], echo);
             d->pointer++;
             return true;
         case OP_H:
-            set_bit(d, REG(d, 0), apply_H(d, c.values[0]));
+            apply_H(d, c.values[0]);
             d->pointer++;
             return true;
         case OP_X:
-            set_bit(d, REG(d, 0), apply_X(d, c.values[0]));
+            apply_X(d, c.values[0]);
             d->pointer++;
             return true;
         case OP_Y:
-            set_bit(d, REG(d, 0), apply_Y(d, c.values[0]));
+            apply_Y(d, c.values[0]);
             d->pointer++;
             return true;
         case OP_Z:
-            set_bit(d, REG(d, 0), apply_Z(d, c.values[0]));
+            apply_Z(d, c.values[0]);
             d->pointer++;
             return true;
     }
