@@ -1,4 +1,4 @@
-< val >
+< val >     // Declares argument
 put 0! val  // Puts the target value in the classical register "0"
 Invert      // Declares a label for inverting the qubit, if needed
 x 0?        // Inverts the qubit "0"

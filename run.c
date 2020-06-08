@@ -7,5 +7,5 @@
 #include "nyancat/nya/lexer.h"
 
 int main(int argc, char **argv) {
-    algorithm a = load_script(argv[1]);
+    list *a = load_script(argv[1]);
 }

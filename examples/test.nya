@@ -1,0 +1,2 @@
+< val >
+put 0! val  // Puts the target value in the classical register "0"

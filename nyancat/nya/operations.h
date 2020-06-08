@@ -1,3 +1,5 @@
+#ifndef NYANCAT_NYA_OPERATIONS
+#define NYANCAT_NYA_OPERATIONS
 #define MAX_TASK_LENGTH 1<<2
 #define MAX_PARAMS_COUNT 1<<2
 
@@ -9,10 +11,16 @@ typedef enum _nyanParam {
     TYPE_QUBIT
 } nyanParam;
 
-typedef struct nyanTask {
+typedef struct _nyanTask {
     char        name[MAX_TASK_LENGTH];
     nyanParam   parameters[MAX_PARAMS_COUNT];
 } nyanTask;
+
+typedef struct _nyanOperation {
+    int     code;
+    int     values[MAX_PARAMS_COUNT];
+    bool    specials[MAX_PARAMS_COUNT];
+} nyanOperation;
 
 static const nyanTask nyanTasks[] = {
     { "end",    { TYPE_BIT } },
@@ -31,3 +39,4 @@ static const nyanTask nyanTasks[] = {
     { "y",      { TYPE_QUBIT } },
     { "z",      { TYPE_QUBIT } },
 };
+#endif

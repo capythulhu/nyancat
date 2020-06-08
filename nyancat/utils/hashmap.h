@@ -56,7 +56,7 @@ hashnode *new_hashnode(char *key, int val) {
     return output;
 }
 
-// Inserts hashmap node
+// Inserts node into hashmap
 bool put_hashnode(hashmap *h, hashnode *n) {
     if(!n || !h) return false;
 
@@ -108,10 +108,10 @@ bool rem_key_from_hashmap(hashmap *h, char *key) {
 
 // Gets a value from the key associated with it
 int get_val_from_hashmap(hashmap *h, char *key) {
-    if(!h) return 0;
+    if(!h) return -1;
 
     hashnode *temp = h->first;
-    if(!temp) return 0;
+    if(!temp) return -1;
 
     while(temp->next) {
         if(strcmp(temp->key, key) == 0) return temp->val;

@@ -22,8 +22,8 @@
 #endif
 
 #include "operations.h"
-#include "commands.h"
 #include "../utils/hashmap.h"
+#include "../utils/list.h"
 
 #define MAX_ERROR_LENGTH    1<<8
 #define MAX_LINE_LENGTH     1<<8
@@ -31,12 +31,7 @@
 #define MAX_LABEL_LENGTH    1<<7
 #define MAX_PARAM_LENGTH    1<<6
 
-typedef struct _algorithm {
-    command     *cmds;
-    unsigned    paramc;
-} algorithm;
-
-algorithm load_script(char *path);
+list *load_script(char *path);
 
 typedef enum _nyanError {
     NO_ERRORS = -1,
@@ -48,6 +43,7 @@ typedef enum _nyanError {
     ARGUMENT_NO_COMMA,
     ARGUMENT_UNNECESSARY,
     ARGUMENT_NO_ANGLE_BRACKET,
+    ARGUMENT_LOOSE_REFERENCE,
     LABEL_ILLEGAL,
     LABEL_UNKNOWN,
     LABEL_DUPLICATED,
@@ -66,7 +62,7 @@ typedef enum _nyanLine {
 } _nyanLine;
 
 // Lexes a .nya script
-void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *arguments, bool preCompile) {
+void lex_script(FILE *f, list *a, int *errorId, hashmap *labels, hashmap *arguments, bool preBuild) {
     // Line buffer
     char line[MAX_LINE_LENGTH];
     // If the line is inside a block comment
@@ -116,8 +112,8 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                 // Identifies tasks
                 if(line[j] >= 'a'
                     && line[j] <= 'z') {
-                    // Doesn't declare tasks on pre compiling
-                    if(preCompile) break;
+                    // Doesn't declare tasks on pre building
+                    if(preBuild) break;
 
                     // Allocates a buffer for the name
                     char *taskBuffer = malloc(sizeof(char) * MAX_TASK_LENGTH);
@@ -136,6 +132,8 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                     }
                     // If task is valid, start reading it's parameters
                     if(l >= 0) {
+                        // Creates operation (parsing)
+                        nyanOperation b = {l, { 0 }, { false }};
                         // If line has already another function, throw an error
                         if(*errorId == NO_ERRORS
                                 && k != LINE_UNDEFINED) {
@@ -146,24 +144,28 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                         k = LINE_TASK;
                         // Parameter counter
                         int m = 0;
-                        // Parameter types
-                        nyanParam parameters[MAX_PARAM_LENGTH] = { TYPE_VOID };
+                        // Calculates desired parameter quantity
+                        int n = 0;
+                        while(nyanTasks[l].parameters[n] != TYPE_VOID
+                            && n < MAX_PARAM_LENGTH) n++;
                         // Loops through line
                         while(j < sizeof(line)
                             && line[j] != '\0'
                             && line[j] != '\n') {
                             // If it's a whitespace, ignore it
-                            while(line[j] == ' ') j++;
-                            // If the task is already filled with parameters, break
-                            if(*errorId == NO_ERRORS
-                                && (nyanTasks[l].parameters == TYPE_VOID
-                                    || l>= MAX_PARAMS_COUNT)) {
-                                *errorId = TASK_EXCESSIVE_PARAMS;
-                                break;
+                            while(line[j] == ' ') {
+                                j++;
+                                continue;
                             }
                             // If it's a number, identify it
                             if(line[j] >= '0'
                                 && line[j] <= '9'){
+                                // If the task is already filled with parameters, break
+                                if(*errorId == NO_ERRORS
+                                    && m >= n) {
+                                    *errorId = TASK_EXCESSIVE_PARAMS;
+                                    break;
+                                }
                                 // Allocates a buffer for the number name
                                 char *numberBuffer =
                                     malloc(sizeof(char) * MAX_TASK_LENGTH);
@@ -171,12 +173,14 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                                 // Iterate until the character isn't a number
                                 while(line[j] >= '0'
                                     && line[j] <= '9') {
-                                    sprintf(numberBuffer, "%s%i", line[j]);
+                                    sprintf(numberBuffer, "%s%c",
+                                        numberBuffer, line[j]);
                                     j++;
                                 }
                                 // Checks it's a classical register (reserved or not)
                                 if(line[j] == '!'
                                     || line[j] == '%') {
+                                        bool isReserved = line[j] == '%';
                                         // Ignores type character
                                         j++;
                                         // If the parameter ends properly
@@ -184,11 +188,12 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                                             || line[j] == '\0'
                                             || line[j] == '\n'
                                             || line[j] == ' ') {
-                                            // Sets the parameter type to classical
-                                            parameters[m] = TYPE_BIT;
+                                            // Saves value into operation
+                                            b.values[m] = atoi(numberBuffer);
+                                            b.specials[m] = isReserved;
                                             // If task expected classical, continues
                                             if(nyanTasks[l].parameters[m] ==
-                                                parameters[m]) {
+                                                TYPE_BIT) {
                                                 // Goes to the next parameter
                                                 m++;
                                                 continue;
@@ -206,11 +211,12 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                                         || line[j] == '\0'
                                         || line[j] == '\n'
                                         || line[j] == ' ') {
-                                        // Sets the parameter type to quantum
-                                        parameters[m] = TYPE_QUBIT;
                                         // If task expected quantum, continues
                                         if(nyanTasks[l].parameters[m] ==
-                                            parameters[m]) {
+                                            TYPE_QUBIT) {
+                                            // Saves value into operation
+                                            b.values[m] = atoi(numberBuffer);
+                                            b.specials[m] = false;
                                             // Goes to the next parameter
                                             m++;
                                             continue;
@@ -223,11 +229,12 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                                         || line[j] == '\0'
                                         || line[j] == '\n'
                                         || line[j] == ' ') {
-                                    // Sets the parameter type to value
-                                    parameters[m] = TYPE_VAL;
                                     // If task expected value, continues
                                     if(nyanTasks[l].parameters[m] ==
-                                        parameters[m]) {
+                                        TYPE_VAL) {
+                                        // Saves value into operation
+                                        b.values[m] = atoi(numberBuffer);
+                                        b.specials[m] = false;
                                         // Goes to the next parameter
                                         m++;
                                         continue;
@@ -241,6 +248,17 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                             if(line[j] == '_'
                                 || (line[j] >= 'a'
                                     && line[j] <= 'z')) {
+                                // If the task is already filled with parameters, break
+                                if(*errorId == NO_ERRORS
+                                    && m >= n) {
+                                    *errorId = TASK_EXCESSIVE_PARAMS;
+                                    break;
+                                } else if (*errorId == NO_ERRORS
+                                    && nyanTasks[l].parameters[m] != TYPE_VAL) {
+                                    // If task didn't expected this value, continues
+                                    *errorId = TASK_UNEXPECTED_PARAM;
+                                    break;
+                                }
                                 // Allocates a buffer for the argument name
                                 char *argumentBuffer =
                                     malloc(sizeof(char) * MAX_ARGUMENT_LENGTH);
@@ -262,21 +280,16 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                                     || line[j] == '\n'
                                     || line[j] == ' ') {
                                     // Checks if the argument was delcared previously
-                                    int index = get_val_from_hashmap(arguments, 
+                                    int value = get_val_from_hashmap(arguments, 
                                         argumentBuffer);
                                     // If it exists, replace it with it's value
-                                    if(index >= 0) {
-                                        parameters[m] = TYPE_VAL;
-                                        // If task expected argument, continues
-                                        if(nyanTasks[l].parameters[m] ==
-                                            parameters[m]) {
-                                            // Goes to the next parameter
-                                            m++;
-                                            continue;
-                                        } else if(*errorId == NO_ERRORS) {
-                                            *errorId = TASK_UNEXPECTED_PARAM;
-                                            break;
-                                        }
+                                    if(value >= 0){
+                                        // Saves value into operation
+                                        b.values[m] = value;
+                                        b.specials[m] = true;
+                                        // Goes to the next parameter
+                                        m++;
+                                        continue;
                                     } else if (*errorId == NO_ERRORS) {
                                         *errorId = ARGUMENT_UNKNOWN;
                                         break;
@@ -285,7 +298,18 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                             }
                             // If it's a label, identify it
                             if(line[j] >= 'A'
-                                    && line[j] <= 'Z') {
+                                && line[j] <= 'Z') {
+                                // If the task is already filled with parameters, break
+                                if(*errorId == NO_ERRORS
+                                    && m >= n) {
+                                    *errorId = TASK_EXCESSIVE_PARAMS;
+                                    break;
+                                } else if (*errorId == NO_ERRORS
+                                    && nyanTasks[l].parameters[m] != TYPE_LABEL) {
+                                    // If task didn't expected this value, breaks
+                                    *errorId = TASK_UNEXPECTED_PARAM;
+                                    break;
+                                }
                                 // Allocates a buffer for the argument name
                                 char *labelBuffer =
                                     malloc(sizeof(char) * MAX_LABEL_LENGTH);
@@ -307,45 +331,45 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                                     || line[j] == '\n'
                                     || line[j] == ' ') {
                                     // Checks if the label exists
-                                    int index = get_val_from_hashmap(labels, 
+                                    int value = get_val_from_hashmap(labels, 
                                         labelBuffer);
                                     // If it exists, replace it with it's value
-                                    if(index >= 0) {
-                                        parameters[m] = TYPE_LABEL;
-                                        // If task expected argument, continues
-                                        if(nyanTasks[l].parameters[m] ==
-                                            parameters[m]) {
-                                            // Goes to the next parameter
-                                            m++;
-                                            continue;
-                                        } else if(*errorId == NO_ERRORS) {
-                                            *errorId = TASK_UNEXPECTED_PARAM;
-                                            break;
-                                        }
+                                    if(value >= 0) {
+                                        // Saves value into operation
+                                        b.values[m] = value;
+                                        b.specials[m] = false;
+                                        // Goes to the next parameter
+                                        m++;
+                                        continue;
                                     } else if (*errorId == NO_ERRORS) {
-                                        *errorId = ARGUMENT_UNKNOWN;
+                                        *errorId = LABEL_UNKNOWN;
                                         break;
                                     }
                                 }
                             }
                             break;
                         }
-                        bool expectedParameters = true;
-                        for(m = 0; m < MAX_PARAMS_COUNT; m++) {
-                            if(expectedParameters)
-                                expectedParameters = parameters[m] ==
-                                    nyanTasks[l].parameters[m];
-                        }
-                        if(expectedParameters) {
+                        if(m == n) {
+                            put_val_on_list(a, b);
                             continue;
                         } else if(*errorId == NO_ERRORS){
                             *errorId = TASK_MISSING_PARAMS;
                             break;
                         }
-                    } else if(*errorId == NO_ERRORS
-                        && k == LINE_UNDEFINED) {
-                        *errorId = TASK_UNKNOWN;
-                        break;
+                    } else {
+                        // Checks if programmer actually meant to reference an argument
+                        int index = get_val_from_hashmap(arguments,
+                            taskBuffer);
+                        
+                        if(index >= 0) {
+                            if(*errorId == NO_ERRORS) {
+                                *errorId = ARGUMENT_LOOSE_REFERENCE;
+                                break;
+                            }
+                        } else if(*errorId == NO_ERRORS) {
+                            *errorId = TASK_UNKNOWN;
+                            break;
+                        }
                     }
                 }
 
@@ -358,8 +382,8 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                         *errorId = LABEL_ILLEGAL;
                         break;
                     }
-                    // Doesn't declare labels on compiling
-                    if(!preCompile) break;
+                    // Doesn't declare labels on building
+                    if(!preBuild) break;
                     // Makes line a label declaration line
                     k = LINE_LABEL;
                     // Allocates a buffer for the name
@@ -378,11 +402,12 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
                         j++;
                     }
                     if(line[j] == '\0'
-                        || line[j] == '\n') {
+                        || line[j] == '\n'
+                        || line[j] == ' ') {
                         bool success = put_val_on_hashmap(
                             labels,
                             labelBuffer,
-                            labels->size
+                            a->size
                         );
                         if(*errorId == NO_ERRORS
                             && !success) {
@@ -397,8 +422,8 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
 
                 // Identifies opening arguments
                 if(line[j] == '<') {
-                    // Doesn't declare arguments on pre compiling
-                    if(preCompile) break;
+                    // Doesn't declare arguments on pre building
+                    if(preBuild) break;
                     // If line has already another function, throw an error
                     if(*errorId == NO_ERRORS
                         && k != LINE_UNDEFINED) {
@@ -509,12 +534,11 @@ void lex_script(FILE *f, algorithm *a, int *errorId, hashmap *labels, hashmap *a
 }
 
 // Loads a .nya script
-algorithm load_script(char *path) {
-    // Compilation Error
+list *load_script(char *path) {
+    // Build Error
     int errorId = NO_ERRORS;
-    // General variables
-    algorithm a = { NULL, 0 };
-    FILE *f;
+    // General specials
+    list *a = new_list();
 
     // Parameters
     hashmap *params = new_hashmap();
@@ -523,41 +547,58 @@ algorithm load_script(char *path) {
     
     char *finalPath = malloc(sizeof(char) * (strlen(path) + strlen(".nya")));
     sprintf(finalPath, "%s%s", path, ".nya");
-    f = fopen(finalPath, "r");
+    FILE *f = fopen(finalPath, "r");
 
+    // If opened file, starts building
     if(f) {
-        // Pre Compiling (finding labels)
-        lex_script(f, &a, &errorId, labels, params, true);
+        // Pre building (finding labels)
+        lex_script(f, a, &errorId, labels, params, true);
         // Rewinds the file
         rewind(f);
-        // Actual compiling
-        lex_script(f, &a, &errorId, labels, params, false);
+        // Actual building
+        lex_script(f, a, &errorId, labels, params, false);
     } else {
         errorId = GENERAL_NOT_NYA;
     }
     
     fclose(f);
-    if(errorId < 0) {
-        int l;
-        hashnode *temp;
-        
-        printf("nyancat: lexing succeeded c:\n");
-        printf("%i params:\n", params->size);
-        
-        l = 0;
-        temp = params->first;
-        while(temp) {
-            printf("\t%i : %s\n", l++, temp->key);
+    if(errorId < 0) {      
+        printf("nyancat: build succeeded c:\n");
+        int i = 0;
+        listnode *temp = a->first;
+        while(temp && i < a->size) {
+            printf("\t%i|%s:", i, nyanTasks[temp->val.code].name);
+            // Calculates desired parameter quantity
+            int j = 0, k;
+            while(j < MAX_PARAM_LENGTH
+                && nyanTasks[temp->val.code].parameters[j] != TYPE_VOID) j++;
+            for(k = 0; k < j; k++) {
+                // Names parameter type
+                char *name;
+                switch(nyanTasks[temp->val.code].parameters[k]) {
+                    case TYPE_LABEL:
+                        name = "line";
+                        break;
+                    case TYPE_QUBIT:
+                        name = "qubit";
+                        break;
+                    case TYPE_BIT:
+                        name = temp->val.specials[k]
+                            ? temp->val.values[k]
+                                ? "ARR" : "TRR" : "register";
+                        break;
+                    case TYPE_VAL:
+                        name = temp->val.specials[k]
+                            ? "argument" : "value";
+                        break;
+                    default: name = "\0";
+                }
+                // Prints parameter
+                printf("\t%i (%s)", temp->val.values[k], name);
+            }
+            printf("\n");
             temp = temp->next;
-        }
-
-        printf("%i labels:\n", labels->size);
-
-        l = 0;
-        temp = labels->first;
-        while(temp) {
-            printf("\t%i : %s\n", l++, temp->key);
-            temp = temp->next;
+            i++;
         }
     } else {
         char *errorMsg;
@@ -585,6 +626,9 @@ algorithm load_script(char *path) {
                 break;   
             case ARGUMENT_NO_ANGLE_BRACKET:
                 errorMsg = "It seems that you forgot to \"close\" your arguments declaration.";
+                break;  
+            case ARGUMENT_LOOSE_REFERENCE:
+                errorMsg = "There's a loose argument on your code. Did you mean to call a task?";
                 break;    
             case LABEL_ILLEGAL:
                 errorMsg = "It isn't allowed to declare labels that way! (Maybe you're doing two stuff on the same line?)";
@@ -614,7 +658,7 @@ algorithm load_script(char *path) {
                 errorMsg = "Unknown error. What are you doing there? e_e";
                 break;
         }
-        printf("nyancat: lexing failed :c\n");
+        printf("nyancat: build failed :c\n");
         printf("error: %s\n", errorMsg);
     }
     return a;
