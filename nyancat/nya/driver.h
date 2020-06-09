@@ -241,6 +241,34 @@ bool process_operation(driver *d, nyanOperation c, int arguments[], bool echo) {
             if(get_bit(d, REG(d, 0)) == 0 || get_bit(d, REG(d, 0)) == -1) d->pointer = c.values[0]; 
             else d->pointer++;
             return true;
+        case OP_ADD:
+            set_bit(d, c.specials[0]
+                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0]
+                    ? REG(d, c.values[0]) : c.values[0]) + get_bit(d, c.specials[1]
+                    ? REG(d, c.values[1]) : c.values[1]));
+            d->pointer++;
+            return true;
+        case OP_SUB:
+            set_bit(d, c.specials[0]
+                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0]
+                    ? REG(d, c.values[0]) : c.values[0]) - get_bit(d, c.specials[1]
+                    ? REG(d, c.values[1]) : c.values[1]));
+            d->pointer++;
+            return true;
+        case OP_MUL:
+            set_bit(d, c.specials[0]
+                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0]
+                    ? REG(d, c.values[0]) : c.values[0]) * get_bit(d, c.specials[1]
+                    ? REG(d, c.values[1]) : c.values[1]));
+            d->pointer++;
+            return true;
+        case OP_DIV:
+            set_bit(d, c.specials[0]
+                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0]
+                    ? REG(d, c.values[0]) : c.values[0]) / get_bit(d, c.specials[1]
+                    ? REG(d, c.values[1]) : c.values[1]));
+            d->pointer++;
+            return true;
         case OP_M:
             set_bit(d, REG(d, 0), apply_M(d, c.values[0], echo));
             d->pointer++;

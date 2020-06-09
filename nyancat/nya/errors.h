@@ -74,6 +74,6 @@ typedef enum _nyanDriverError {
     DRIVER_ERR_INVALID_ARGUMENT
 } nyanDriverError;
 
-void print_build_error(nyanBuildError err) { printf("[Build Error] %s\n", nyanDriverErrors[err]); }
+void print_build_error(nyanBuildError err) { printf("[Build Error] %s\n", nyanBuildErrors[err]); }
 void print_driver_error(nyanDriverError err) { printf("[Driver Error] %s\n", nyanDriverErrors[err]); }
 #endif

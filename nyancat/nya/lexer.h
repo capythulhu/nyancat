@@ -260,7 +260,9 @@ void lex_script(FILE *f, nyanResult *r, nyanBuildError *errorId, hashmap *labels
                                 || (line[j] >= 'a'
                                     && line[j] <= 'z')
                                 || (line[j] >= 'A'
-                                    && line[j] <= 'Z')) {
+                                    && line[j] <= 'Z')
+                                || (line[j] >= '0'
+                                    && line[j] <= '9')) {
                                     // Appends character to buffer array
                                     sprintf(argumentBuffer, "%s%c",
                                         argumentBuffer, line[j]);
@@ -311,7 +313,9 @@ void lex_script(FILE *f, nyanResult *r, nyanBuildError *errorId, hashmap *labels
                                 || (line[j] >= 'a'
                                     && line[j] <= 'z')
                                 || (line[j] >= 'A'
-                                    && line[j] <= 'Z')) {
+                                    && line[j] <= 'Z')
+                                || (line[j] >= '0'
+                                    && line[j] <= '9')) {
                                     // Appends character to buffer array
                                     sprintf(labelBuffer, "%s%c",
                                         labelBuffer, line[j]);

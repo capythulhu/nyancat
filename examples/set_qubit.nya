@@ -1,8 +1,3 @@
-/*
- * This one requires 1 argument. Try running `nyancat examples/set_qubit X` (being X 0 or 1).
- * A qubit will be set to that value, measured and then outputted to your driver.
- */
-
 < val >     // Declares argument
 put 0! val  // Puts the target value in the classical register "0"
 Invert      // Declares a label for inverting the qubit, if needed
