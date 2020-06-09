@@ -29,11 +29,11 @@
 #define MAX_ARGUMENT_LENGTH 1<<7
 #define MAX_LABEL_LENGTH    1<<7
 #define MAX_PARAM_LENGTH    1<<6
-typedef struct _nyanResult {
+typedef struct _qscript {
     list *algorithm;
     int qtotal;
     int ctotal;
-} nyanResult;
+} qscript;
 
 typedef enum _nyanLine {
     LINE_UNDEFINED = -1,
@@ -42,11 +42,11 @@ typedef enum _nyanLine {
     LINE_TASK,
 } _nyanLine;
 
-void lex_script(FILE *f, nyanResult *r, int *errorId, hashmap *labels, hashmap *arguments, bool preBuild);
-nyanResult load_script(char *path, bool echo);
+void lex_script(FILE *f, qscript *r, int *errorId, hashmap *labels, hashmap *arguments, bool preBuild);
+qscript load_script(char *path, bool echo);
 
 // Lexes a .nya script
-void lex_script(FILE *f, nyanResult *r, nyanBuildError *errorId, hashmap *labels, hashmap *arguments, bool preBuild) {
+void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, hashmap *arguments, bool preBuild) {
     // Line buffer
     char line[MAX_LINE_LENGTH];
     // If the line is inside a block comment
@@ -530,11 +530,11 @@ void lex_script(FILE *f, nyanResult *r, nyanBuildError *errorId, hashmap *labels
 }
 
 // Loads a .nya script
-nyanResult load_script(char *path, bool echo) {
+qscript load_script(char *path, bool echo) {
     // Build Error
     nyanBuildError errorId = BUILD_ERR_NO_ERRORS;
     // Result
-    nyanResult r = { new_list(), 0, 0 };
+    qscript r = { new_list(), 0, 0 };
 
     // Parameters
     hashmap *params = new_hashmap();

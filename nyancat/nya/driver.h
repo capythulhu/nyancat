@@ -292,6 +292,18 @@ bool process_operation(driver *d, nyanOperation c, int arguments[], bool echo) {
     }
 }
 
+// Process an algorithm filling all arguments with "0"
+int process_simple_algorithm(driver *d, list *a, bool echo) {
+    if(!d || !a) return -1;
+    d->pointer = 0;
+    int i = false, j[MAX_PARAMS_COUNT] = {0};
+    do {
+        i = process_operation(d, get_val_from_list(a, d->pointer), j, echo);
+    } while(i == true);
+    if(echo) printf("Algorithm finished with return code %i.\n", d->cregs[REG(d, 1)]);
+    return d->cregs[REG(d, 1)];
+}
+
 // Process an algorithm
 int process_algorithm(driver *d, list *a, int arguments[], bool echo) {
     if(!d || !a) return -1;
