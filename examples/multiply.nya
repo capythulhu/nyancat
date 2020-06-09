@@ -1,5 +1,0 @@
-< val1, val2 >
-put 0! val1
-put 1! val2
-mul 0! 1!
-end 0!
