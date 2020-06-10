@@ -3,9 +3,9 @@
 </p>
 
 # Welcome to nyancat!
-**nyancat** is a C library that allows you to *simulate a quantum processor* and easily *write machine code for it!*
+**nyancat Algorithm Runner** is a C library that allows you to *simulate a quantum processor* and easily *write machine code for it!*
 
-The latest stable version available is [**nyancat H**](https://github.com/thzoid/nyancat/releases). You can download this and previous versions on the "Releases" tab.
+The latest stable version available for the [nyancat Algorithm Runner (nAR)](https://github.com/thzoid/nyancat/releases) supports **nyancat H**. You can download this and previous versions on the "Releases" tab.
 
 You can either run simple isolated quantum algorithms with `nyancat.exe` or integrate many algorithms into a C project and make more complete computations.
 
@@ -184,7 +184,7 @@ end 0%
 
 main() {
     driver *d = new_driver(1, 0);
-    qscript r = load_script("examples/random_bit", false);
+    qscript r = load_script("examples/nya/random_bit", false);
     int bit = process_simple_algorithm(d, r.algorithm, false);
     printf("%s world!", bit ? "Hello" : "Goodbye");
 }

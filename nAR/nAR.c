@@ -4,7 +4,7 @@
 #define STDIO_H
 #include <stdio.h>
 
-#include "nyancat/nya/driver.h"
+#include "nya/driver.h"
 
 int main(int argc, char **argv) {
     // Gets arguments from command line
@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
         j[i] = i < argc - 2 ? atoi(argv[i + 2]) : 0;
     }
     // Loads script and gets necessary count of registers and qubits
-    nyanResult r = load_script(argv[1], false);
+    qscript r = load_script(argv[1], false);
     // Allocates driver
     driver *d = new_driver(r.qtotal, r.ctotal);
     // Runs loaded algorithm

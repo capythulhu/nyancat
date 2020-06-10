@@ -6,7 +6,7 @@
 			"label": "Build nyancat script runner (run.c) with gcc.exe",
 			"command": "gcc",
 			"args": [
-				"run.c",
+				"nAR/nAR.c",
 				"-o",
 				"nyancat",
 				"-lm"

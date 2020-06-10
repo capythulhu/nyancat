@@ -152,7 +152,7 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                                 }
                                 // Allocates a buffer for the number name
                                 char *numberBuffer =
-                                    malloc(sizeof(char) * MAX_TASK_LENGTH);
+                                    malloc(sizeof(char) * MAX_NUM_LENGTH);
                                 numberBuffer[0] = '\0';
                                 // Iterate until the character isn't a number
                                 while(line[j] >= '0'
