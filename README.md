@@ -3,11 +3,11 @@
 </p>
 
 # Welcome to nyancat!
-**nyancat Algorithm Runner** is a C library that allows you to *simulate a quantum processor* and easily *write machine code for it!*
+**nyancat Algorithm Runner (nAR)** is a C library that allows you to *simulate a quantum processor* and easily *write machine code for it* using **nyancat**, a monolithic programming language.
 
-The latest stable version available for the [nyancat Algorithm Runner (nAR)](https://github.com/thzoid/nyancat/releases) supports **nyancat He**. You can download this and previous versions on the "Releases" tab.
+The latest stable version available for [nyancat Algorithm Runner (nAR)](https://github.com/thzoid/nyancat/releases) supports **nyancat He**, which is also the latest version of the language.
 
-You can either run simple isolated quantum algorithms with `nyancat.exe` or integrate many algorithms into a C project and make more complete computations.
+You can either download the nAR executable file (`nyancat.exe`) and run simple, isolated quantum algorithms, or download the source code to be able to integrate many algorithms with C code and make more complex computations!
 
 :warning: Please note that this library _only simulates a QPU (Quantum Processing Unit)_. You shouldn't expect it neither to be more performatic than classical computing nor to compile code that would run on a real quantum processor. This library has it's own (simplified) processor architecture implementation.
 
