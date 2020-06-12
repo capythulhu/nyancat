@@ -179,7 +179,7 @@ If you want a task to read a specific value as an implicit parameter, you'll hav
 Here is a simple quantum hello world made of two files:
 
 `random_bit.nya`:
-```
+```terraform
 h 0?
 m 0?
 end [0%]
@@ -187,7 +187,7 @@ end [0%]
 ---
 `hello_world.c`:
 
-```
+```c
 #include <stdio.h>
 #include "../../nAR/nya/driver.h"
 
