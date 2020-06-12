@@ -1,10 +1,16 @@
+/*
+    You can compile this algorithm by running `gcc examples/c/hello_world.c -lm`.
+    This algorithm can print two different messages, depending on
+    the result of a qubit's measurement.
+*/
+
 #define STDLIB_H
 #include <stdlib.h>
 
 #define STDIO_H
 #include <stdio.h>
 
-#include "../../nyancat/nya/driver.h"
+#include "../../nAR/nya/driver.h"
 
 int main(void) {
     // Allocates driver

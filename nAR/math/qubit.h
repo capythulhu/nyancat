@@ -43,7 +43,6 @@ qubit pauli_z(qubit q);
 // Checks if qubit's eigenvalues are 100% in total
 bool valid_qubit(qubit q) {
     double sum = pow_complex(q.zero, 2).r + pow_complex(q.one, 2).r;
-    //printf("asd: %f\n", sum);
     return fabs(sum) >= 1 - PROBABILITY_ERROR && sum <= 1 + PROBABILITY_ERROR;
 }
 

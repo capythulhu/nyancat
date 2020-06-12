@@ -41,7 +41,13 @@ typedef enum _nyanBuildError {
     BUILD_ERR_TASK_UNKNOWN,
     BUILD_ERR_TASK_UNEXPECTED_PARAM,
     BUILD_ERR_TASK_MISSING_PARAMS,
-    BUILD_ERR_TASK_EXCESSIVE_PARAMS
+    BUILD_ERR_TASK_EXCESSIVE_PARAMS,
+    BUILD_ERR_REFERENCE_EMPTY,
+    BUILD_ERR_REFERENCE_NO_SQUARE_BRACKET,
+    BUILD_ERR_REFERENCE_NO_QUBIT,
+    BUILD_ERR_REFERENCE_NO_VALUE,
+    BUILD_ERR_REFERENCE_NO_ARGUMENT,
+    BUILD_ERR_REFERENCE_NO_LABEL,
 } nyanBuildError;
 
 char nyanBuildErrors[][MAX_ERROR_LENGTH] = {
@@ -52,7 +58,7 @@ char nyanBuildErrors[][MAX_ERROR_LENGTH] = {
     "There's a cloned argument.",
     "Your arguments declaration is missing a comma!",
     "There's an unecessary character on your arguments declaration. Take it out!",
-    "It seems that you forgot to \"close\" your arguments declaration.",
+    "It seems that you forgot to \"close\" your arguments declaration. Put an angle bracket there!",
     "There's a loose argument on your code. Did you mean to call a task?",
     "It isn't allowed to declare labels that way! (Maybe you're doing two stuff on the same line?)",
     "It doesn't seem like there's a label with that name.",
@@ -62,6 +68,12 @@ char nyanBuildErrors[][MAX_ERROR_LENGTH] = {
     "The called task doesn't ask for that type of parameter.",
     "The task you've called asks for more parameters than you provided.",
     "Too much parameters for the task you've called.",
+    "Your reference is empty. Did you forget to put a register in there?",
+    "It seems that you forgot to \"close\" your reference. Put an angle bracket there!",
+    "You cannot get the value of a qubit wihtout measuring it! Use the \"m\" task instead.",
+    "You are trying to get a value from another value. Specify a classical register or remove the square brackets.",
+    "Arguments are not allowed on references. You must specify a classical register.",
+    "Labels are not allowed on references. I mean, what are you even trying to do?",
 };
 
 typedef enum _nyanDriverError {

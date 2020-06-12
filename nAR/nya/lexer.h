@@ -51,6 +51,8 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
     char line[MAX_LINE_LENGTH];
     // If the line is inside a block comment
     bool onBlockComment = false;
+    // Task count on pre build
+    int p = 0;
     
     // Loops through lines
     while(fgets(line, MAX_LINE_LENGTH, f)) { 
@@ -58,7 +60,6 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
         int j = 0;
         // Line definition
         int k = LINE_UNDEFINED;
-
         while(j < sizeof(line)
             && line[j] != '\0'
             && line[j] != '\n') {
@@ -97,8 +98,11 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                 if(line[j] >= 'a'
                     && line[j] <= 'z') {
                     // Doesn't declare tasks on pre building
-                    if(preBuild) break;
-
+                    if(preBuild) {
+                        // Increments task count
+                        p++;
+                        break;
+                    }
                     // Allocates a buffer for the name
                     char *taskBuffer = malloc(sizeof(char) * MAX_TASK_LENGTH);
                     taskBuffer[0] = '\0';
@@ -126,27 +130,243 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                         }
                         // Makes line a task line
                         k = LINE_TASK;
-                        // Parameter counter
+                        // Valid parameters counter
                         int m = 0;
                         // Calculates desired parameter quantity
                         int n = 0;
                         while(nyanTasks[l].parameters[n] != TYPE_VOID
                             && n < MAX_PARAM_LENGTH) n++;
+                        // Theoretical parameters counter
+                        int o = 0;
                         // Loops through line
                         while(j < sizeof(line)
                             && line[j] != '\0'
-                            && line[j] != '\n') {
+                            && line[j] != '\n'
+                            && line[j] != '/') {
                             // If it's a whitespace, ignore it
                             while(line[j] == ' ') {
                                 j++;
                                 continue;
                             }
+                            // If it's a reference, identify it
+                            if(line[j] == '['){
+                                bool closedReference = false;
+                                bool foundNumber = false;
+                                // Ignores opening character
+                                j++;
+                                // Increments theoretical parameters count
+                                o++;
+                                // If the task is already filled with parameters, break
+                                if(*errorId == BUILD_ERR_NO_ERRORS
+                                    && o > n) {
+                                    *errorId = BUILD_ERR_TASK_EXCESSIVE_PARAMS;
+                                    break;
+                                }
+                                // Allocates a buffer for the number name
+                                char *numberBuffer =
+                                    malloc(sizeof(char) * MAX_NUM_LENGTH);
+                                numberBuffer[0] = '\0';
+                                // If it's a whitespace, ignore it
+                                while(line[j] == ' ') j++;
+                                // Iterate until the character isn't a number
+                                while(line[j] >= '0'
+                                    && line[j] <= '9') {                                    
+                                    sprintf(numberBuffer, "%s%c",
+                                        numberBuffer, line[j]);
+                                    j++;
+                                    foundNumber = true;
+                                }
+                                // If it's an argument, identify it
+                                if(line[j] == '_'
+                                    || (line[j] >= 'a'
+                                        && line[j] <= 'z')) {
+                                    // Allocates a buffer for the argument name
+                                    char *argumentBuffer =
+                                        malloc(sizeof(char) * MAX_ARGUMENT_LENGTH);
+                                    argumentBuffer[0] = '\0';
+                                    // Iterate until the character isn't valid
+                                    while(line[j] == '_'
+                                    || (line[j] >= 'a'
+                                        && line[j] <= 'z')
+                                    || (line[j] >= 'A'
+                                        && line[j] <= 'Z')
+                                    || (line[j] >= '0'
+                                        && line[j] <= '9')) {
+                                        // Appends character to buffer array
+                                        sprintf(argumentBuffer, "%s%c",
+                                            argumentBuffer, line[j]);
+                                        j++;
+                                    }
+                                    // If it's a whitespace, ignore it
+                                    while(line[j] == ' ') j++;
+                                    // If the parameter ends properly
+                                    if(line[j] == ']') {
+                                        // Goes to next character
+                                        j++;
+                                        closedReference = true;
+                                        // Checks if the argument was delcared previously
+                                        int value = get_val_from_hashmap(arguments, 
+                                            argumentBuffer);
+                                        // If it exists, trigger "no argument" error
+                                        if(value >= 0){
+                                            if (*errorId == BUILD_ERR_NO_ERRORS) {
+                                                *errorId = BUILD_ERR_REFERENCE_NO_ARGUMENT;
+                                                break;
+                                            }
+                                            continue;
+                                        } else if (*errorId == BUILD_ERR_NO_ERRORS) {
+                                            *errorId = BUILD_ERR_ARGUMENT_UNKNOWN;
+                                            break;
+                                        }
+                                        // Triggers "no quantum measurement" error
+                                        if(*errorId == BUILD_ERR_NO_ERRORS) {
+                                            *errorId = BUILD_ERR_REFERENCE_NO_QUBIT;
+                                            break;
+                                        }
+                                    }
+                                }
+                                // If it's a label, identify it
+                                if(line[j] >= 'A'
+                                    && line[j] <= 'Z') {
+                                    // Allocates a buffer for the argument name
+                                    char *labelBuffer =
+                                        malloc(sizeof(char) * MAX_LABEL_LENGTH);
+                                    labelBuffer[0] = '\0';
+                                    // Iterate until the character isn't valid
+                                    while(line[j] == '_'
+                                    || (line[j] >= 'a'
+                                        && line[j] <= 'z')
+                                    || (line[j] >= 'A'
+                                        && line[j] <= 'Z')
+                                    || (line[j] >= '0'
+                                        && line[j] <= '9')) {
+                                        // Appends character to buffer array
+                                        sprintf(labelBuffer, "%s%c",
+                                            labelBuffer, line[j]);
+                                        j++;
+                                    }
+                                    // If it's a whitespace, ignore it
+                                    while(line[j] == ' ') j++;
+                                    // If the parameter ends properly
+                                    if(line[j] == ']') {
+                                        // Checks if the label exists
+                                        int value = get_val_from_hashmap(labels, 
+                                            labelBuffer);
+                                        // If it exists, trigger "no label" error
+                                        if(value >= 0) {
+                                            if (*errorId == BUILD_ERR_NO_ERRORS) {
+                                                *errorId = BUILD_ERR_REFERENCE_NO_LABEL;
+                                                break;
+                                            }
+                                            continue;
+                                        } else if (*errorId == BUILD_ERR_NO_ERRORS) {
+                                            *errorId = BUILD_ERR_LABEL_UNKNOWN;
+                                            break;
+                                        }
+                                    }
+                                }
+                                // Checks if it's a classical register (reserved or not)
+                                if(foundNumber
+                                    && (line[j] == '!'
+                                        || line[j] == '%')) {
+                                    bool isReserved = line[j] == '%';
+                                    // Ignores type character
+                                    j++;
+                                    // If it's a whitespace, ignore it
+                                    while(line[j] == ' ') j++;
+                                    // If the parameter ends properly
+                                    if(line[j] == ']') {
+                                        // Goes to next character
+                                        j++;
+                                        // Saves value into operation
+                                        b.values[m] = atoi(numberBuffer);
+                                        b.specials[m] = TAG_REFERENCE | isReserved * TAG_RESERVED;
+                                        // Keeps track of necessary register count
+                                        if(!isReserved && b.values[m] >= r->ctotal)
+                                            r->ctotal = b.values[m] + 1;
+                                        closedReference = true;
+                                    }
+                                // Checks if it's a quantum register
+                                } else if(foundNumber
+                                    && line[j] == '?') {
+                                    // Ignores type character
+                                    j++;
+                                    // If it's a whitespace, ignore it
+                                    while(line[j] == ' ') j++;
+                                    // If the parameter ends properly
+                                    if(line[j] == ']') {
+                                        // Goes to next character
+                                        j++;
+                                        closedReference = true;
+                                        // Triggers "no quantum measurement" error
+                                        if(*errorId == BUILD_ERR_NO_ERRORS) {
+                                            *errorId = BUILD_ERR_REFERENCE_NO_QUBIT;
+                                            break;
+                                        }
+                                    }
+                                } else if(foundNumber
+                                    && (line[j] == ']'
+                                        || line[j] == ' ')) {
+                                    // If it's a whitespace, ignore it
+                                    while(line[j] == ' ') j++;
+                                    // If the parameter ends properly
+                                    if(line[j] == ']') {
+                                        // Goes to next character
+                                        j++;
+                                        closedReference = true;
+                                        // Triggers "no quantum measurement" error
+                                        if(*errorId == BUILD_ERR_NO_ERRORS) {
+                                            *errorId = BUILD_ERR_REFERENCE_NO_VALUE;
+                                            break;
+                                        }
+                                    }
+                                } 
+                                // If it's a whitespace, ignore it
+                                while(!closedReference
+                                    && line[j] == ' ') j++;
+                                // If the finds closing character
+                                if(line[j] == ']') {
+                                    // Goes to next character
+                                    j++;
+                                    closedReference = true;
+                                }
+                                // If the reference ends properly
+                                if(j >= sizeof(line)
+                                        || line[j] == ' '
+                                        || line[j] == '\0'
+                                        || line[j] == '\n'
+                                        || line[j] == '/') {
+                                    // Checks if reference has been closed
+                                    if(closedReference) {
+                                        if(foundNumber) {
+                                            // If task expected value, continues
+                                            if(nyanTasks[l].parameters[m] ==
+                                                TYPE_VAL) {
+                                                // Goes to the next parameter
+                                                m++;
+                                                continue;
+                                            } else if(*errorId == BUILD_ERR_NO_ERRORS) {
+                                                *errorId = BUILD_ERR_TASK_UNEXPECTED_PARAM;
+                                                break;
+                                            }
+                                        } else if(*errorId == BUILD_ERR_NO_ERRORS) {
+                                            *errorId = BUILD_ERR_REFERENCE_EMPTY;
+                                            break;
+                                        }
+                                    } else if(*errorId == BUILD_ERR_NO_ERRORS) {
+                                        *errorId = BUILD_ERR_REFERENCE_NO_SQUARE_BRACKET;
+                                        break;
+                                    }
+                                }
+                            }
                             // If it's a number, identify it
                             if(line[j] >= '0'
                                 && line[j] <= '9'){
+                                // Increments theoretical parameters count
+                                o++;
                                 // If the task is already filled with parameters, break
                                 if(*errorId == BUILD_ERR_NO_ERRORS
-                                    && m >= n) {
+                                    && o > n) {
                                     *errorId = BUILD_ERR_TASK_EXCESSIVE_PARAMS;
                                     break;
                                 }
@@ -164,32 +384,32 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                                 // Checks it's a classical register (reserved or not)
                                 if(line[j] == '!'
                                     || line[j] == '%') {
-                                        bool isReserved = line[j] == '%';
-                                        // Ignores type character
-                                        j++;
-                                        // If the parameter ends properly
-                                        if(j >= sizeof(line)
-                                            || line[j] == '\0'
-                                            || line[j] == '\n'
-                                            || line[j] == ' ') {
-                                            // Saves value into operation
-                                            b.values[m] = atoi(numberBuffer);
-                                            b.specials[m] = isReserved;
-                                            // Keeps track of necessary register count
-                                            if(!isReserved && b.values[m] >= r->ctotal) {
-                                                r->ctotal = b.values[m] + 1;
-                                            }
-                                            // If task expected classical, continues
-                                            if(nyanTasks[l].parameters[m] ==
-                                                TYPE_BIT) {
-                                                // Goes to the next parameter
-                                                m++;
-                                                continue;
-                                            } else if(*errorId == BUILD_ERR_NO_ERRORS) {
-                                                *errorId = BUILD_ERR_TASK_UNEXPECTED_PARAM;
-                                                break;
-                                            }
+                                    bool isReserved = line[j] == '%';
+                                    // Ignores type character
+                                    j++;
+                                    // If the parameter ends properly
+                                    if(j >= sizeof(line)
+                                        || line[j] == '\0'
+                                        || line[j] == '\n'
+                                        || line[j] == ' '
+                                        || line[j] == '/') {
+                                        // Saves value into operation
+                                        b.values[m] = atoi(numberBuffer);
+                                        b.specials[m] = TAG_RESERVED * isReserved;
+                                        // Keeps track of necessary register count
+                                        if(!isReserved && b.values[m] >= r->ctotal)
+                                            r->ctotal = b.values[m] + 1;
+                                        // If task expected classical, continues
+                                        if(nyanTasks[l].parameters[m] ==
+                                            TYPE_BIT) {
+                                            // Goes to the next parameter
+                                            m++;
+                                            continue;
+                                        } else if(*errorId == BUILD_ERR_NO_ERRORS) {
+                                            *errorId = BUILD_ERR_TASK_UNEXPECTED_PARAM;
+                                            break;
                                         }
+                                    }
                                 // Checks if it's a quantum register
                                 } else if(line[j] == '?') {
                                     // Ignores type character
@@ -198,13 +418,14 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                                     if(j >= sizeof(line)
                                         || line[j] == '\0'
                                         || line[j] == '\n'
-                                        || line[j] == ' ') {
+                                        || line[j] == ' '
+                                        || line[j] == '/') {
                                         // If task expected quantum, continues
                                         if(nyanTasks[l].parameters[m] ==
                                             TYPE_QUBIT) {
                                             // Saves value into operation
                                             b.values[m] = atoi(numberBuffer);
-                                            b.specials[m] = false;
+                                            b.specials[m] = TAG_NONE;
                                             // Keeps track of necessary qubit count
                                             if(b.values[m] >= r->qtotal) {
                                                 r->qtotal = b.values[m] + 1;
@@ -220,13 +441,14 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                                 } else if(j >= sizeof(line)
                                         || line[j] == '\0'
                                         || line[j] == '\n'
-                                        || line[j] == ' ') {
+                                        || line[j] == ' '
+                                        || line[j] == '/') {
                                     // If task expected value, continues
                                     if(nyanTasks[l].parameters[m] ==
                                         TYPE_VAL) {
                                         // Saves value into operation
                                         b.values[m] = atoi(numberBuffer);
-                                        b.specials[m] = false;
+                                        b.specials[m] = TAG_NONE;
                                         // Goes to the next parameter
                                         m++;
                                         continue;
@@ -235,14 +457,17 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                                         break;
                                     }
                                 }
+                                break;
                             }
                             // If it's an argument, identify it
                             if(line[j] == '_'
                                 || (line[j] >= 'a'
                                     && line[j] <= 'z')) {
+                                // Increments theoretical parameters count
+                                o++;
                                 // If the task is already filled with parameters, break
                                 if(*errorId == BUILD_ERR_NO_ERRORS
-                                    && m >= n) {
+                                    && o > n) {
                                     *errorId = BUILD_ERR_TASK_EXCESSIVE_PARAMS;
                                     break;
                                 } else if (*errorId == BUILD_ERR_NO_ERRORS
@@ -272,7 +497,8 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                                 if(j >= sizeof(line)
                                     || line[j] == '\0'
                                     || line[j] == '\n'
-                                    || line[j] == ' ') {
+                                    || line[j] == ' '
+                                    || line[j] == '/') {
                                     // Checks if the argument was delcared previously
                                     int value = get_val_from_hashmap(arguments, 
                                         argumentBuffer);
@@ -280,7 +506,7 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                                     if(value >= 0){
                                         // Saves value into operation
                                         b.values[m] = value;
-                                        b.specials[m] = true;
+                                        b.specials[m] = TAG_ARGUMENT;
                                         // Goes to the next parameter
                                         m++;
                                         continue;
@@ -293,9 +519,11 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                             // If it's a label, identify it
                             if(line[j] >= 'A'
                                 && line[j] <= 'Z') {
+                                // Increments theoretical parameters count
+                                o++;
                                 // If the task is already filled with parameters, break
                                 if(*errorId == BUILD_ERR_NO_ERRORS
-                                    && m >= n) {
+                                    && o > n) {
                                     *errorId = BUILD_ERR_TASK_EXCESSIVE_PARAMS;
                                     break;
                                 } else if (*errorId == BUILD_ERR_NO_ERRORS
@@ -325,7 +553,8 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                                 if(j >= sizeof(line)
                                     || line[j] == '\0'
                                     || line[j] == '\n'
-                                    || line[j] == ' ') {
+                                    || line[j] == ' '
+                                    || line[j] == '/') {
                                     // Checks if the label exists
                                     int value = get_val_from_hashmap(labels, 
                                         labelBuffer);
@@ -333,7 +562,7 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                                     if(value >= 0) {
                                         // Saves value into operation
                                         b.values[m] = value;
-                                        b.specials[m] = false;
+                                        b.specials[m] = TAG_NONE;
                                         // Goes to the next parameter
                                         m++;
                                         continue;
@@ -345,7 +574,7 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                             }
                             break;
                         }
-                        if(m == n) {
+                        if(o == n) {
                             put_val_on_list(r->algorithm, b);
                             continue;
                         } else if(*errorId == BUILD_ERR_NO_ERRORS){
@@ -403,7 +632,7 @@ void lex_script(FILE *f, qscript *r, nyanBuildError *errorId, hashmap *labels, h
                         bool success = put_val_on_hashmap(
                             labels,
                             labelBuffer,
-                            r->algorithm->size + 1
+                            p
                         );
                         if(*errorId == BUILD_ERR_NO_ERRORS
                             && !success) {

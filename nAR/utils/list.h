@@ -28,7 +28,7 @@ typedef struct _list{
 list *new_list(void);
 listnode *new_listnode(nyanOperation val);
 bool put_val_on_list(list *l, nyanOperation val);
-nyanOperation get_val_from_list(list *l, int index);
+nyanOperation get_val_from_list(list *l, unsigned index);
 
 // New list
 list *new_list(void) {
@@ -69,7 +69,7 @@ bool put_val_on_list(list *l, nyanOperation val) {
 }
 
 // Gets a value from the index associated with it
-nyanOperation get_val_from_list(list *l, int index) {
+nyanOperation get_val_from_list(list *l, unsigned index) {
     if(!l) return (nyanOperation){-1, 0, false};
 
     int i = 0;

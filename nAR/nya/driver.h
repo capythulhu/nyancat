@@ -43,7 +43,7 @@
 // Driver structure
 typedef struct _driver {
     qubit       *qregs;
-    char        *cregs;
+    unsigned    *cregs;
     unsigned    qtotal;
     unsigned    ctotal;
     unsigned    pointer;
@@ -70,7 +70,7 @@ driver *new_driver(unsigned qtotal, unsigned ctotal) {
     d->qtotal = qtotal;
     d->ctotal = ctotal;
     d->qregs = malloc(sizeof(qubit) * d->qtotal);
-    d->cregs = calloc(sizeof(char), d->ctotal + RESERVED_REGS);
+    d->cregs = calloc(sizeof(int), d->ctotal + RESERVED_REGS);
     d->pointer = 0;
     int i;
     for(i = 0; i < d->qtotal; i++) d->qregs[i] = ZERO;
@@ -192,30 +192,37 @@ bool process_operation(driver *d, nyanOperation c, int arguments[], bool echo) {
     if(!d) return false;
     switch(c.code) {
         case OP_END:
-            d->cregs[REG(d, 1)] = get_bit(d, c.specials[0]
-                ? REG(d, c.values[0]) : c.values[0]);
+            d->cregs[REG(d, 1)] = c.specials[0] & TAG_ARGUMENT
+                ? arguments[c.values[0]] : c.specials[0] & TAG_REFERENCE
+                    ? get_bit(d, c.specials[0] & TAG_RESERVED
+                        ? REG(d, c.values[0]) : c.values[0]) : c.values[0];
             return false;
         case OP_MOV:            
-            set_bit(d, c.specials[1]
-                ? REG(d, c.values[1]) : c.values[1],
-                get_bit(d, c.specials[0]
-                    ? REG(d, c.values[0]) : c.values[0]));
-            d->pointer++;
-            return true;
-        case OP_PUT:
             set_bit(d, c.specials[0]
-                ? REG(d, c.values[0]) : c.values[0], c.specials[1]
-                    ? arguments[c.values[1]] : c.values[1]);
+                ? REG(d, c.values[0]) : c.values[0],
+                c.specials[1] & TAG_ARGUMENT
+                ? arguments[c.values[1]] : c.specials[1] & TAG_REFERENCE
+                    ? get_bit(d, c.specials[1] & TAG_RESERVED
+                        ? REG(d, c.values[1]) : c.values[1]) : c.values[1]);
             d->pointer++;
             return true;
         case OP_CMP:            
             set_bit(d, REG(d, 0), 
-                get_bit(d, REG(d, 0)) > get_bit(d, c.specials[0]
-                    ? REG(d, c.values[0]) : c.values[0]) ? 1
-                : (get_bit(d, REG(d, 0)) == get_bit(d, c.specials[0]
-                    ? REG(d, c.values[0]) : c.values[0]) ? 0
-                : -1));            
+                get_bit(d, c.specials[0] & TAG_RESERVED
+                    ? REG(d, c.values[0]) : c.values[0]) > (c.specials[1] & TAG_ARGUMENT
+                    ? arguments[c.values[1]] : c.specials[1] & TAG_REFERENCE
+                        ? get_bit(d, c.specials[1] & TAG_RESERVED
+                            ? REG(d, c.values[1]) : c.values[1]) : c.values[1])
+                    ? 1 : (get_bit(d, c.specials[0] & TAG_RESERVED
+                        ? REG(d, c.values[0]) : c.values[0]) == (c.specials[1] & TAG_ARGUMENT
+                        ? arguments[c.values[1]] : c.specials[1] & TAG_REFERENCE
+                            ? get_bit(d, c.specials[1] & TAG_RESERVED
+                                ? REG(d, c.values[1]) : c.values[1]) : c.values[1])
+                    ? 0 : -1));            
             d->pointer++;
+            return true;
+        case OP_JMP:
+            d->pointer = c.values[0]; 
             return true;
         case OP_JE:
             if(get_bit(d, REG(d, 0)) == 0) d->pointer = c.values[0]; 
@@ -230,7 +237,7 @@ bool process_operation(driver *d, nyanOperation c, int arguments[], bool echo) {
             else d->pointer++;
             return true;
         case OP_JGE:
-            if(get_bit(d, REG(d, 0)) == 0 || get_bit(d, 1) == 1) d->pointer = c.values[0]; 
+            if(get_bit(d, REG(d, 0)) >= 0) d->pointer = c.values[0]; 
             else d->pointer++;
             return true;
         case OP_JL:
@@ -238,35 +245,43 @@ bool process_operation(driver *d, nyanOperation c, int arguments[], bool echo) {
             else d->pointer++;
             return true;
         case OP_JLE:
-            if(get_bit(d, REG(d, 0)) == 0 || get_bit(d, REG(d, 0)) == -1) d->pointer = c.values[0]; 
+            if(get_bit(d, REG(d, 0)) <= 0) d->pointer = c.values[0]; 
             else d->pointer++;
             return true;
         case OP_ADD:
-            set_bit(d, c.specials[0]
-                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0]
-                    ? REG(d, c.values[0]) : c.values[0]) + get_bit(d, c.specials[1]
-                    ? REG(d, c.values[1]) : c.values[1]));
+            set_bit(d, c.specials[0] & TAG_RESERVED
+                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0] & TAG_RESERVED
+                    ? REG(d, c.values[0]) : c.values[0]) + (c.specials[1] & TAG_ARGUMENT
+                    ? arguments[c.values[1]] : c.specials[1] & TAG_REFERENCE
+                        ? get_bit(d, c.specials[1] & TAG_RESERVED
+                            ? REG(d, c.values[1]) : c.values[1]) : c.values[1]));
             d->pointer++;
             return true;
         case OP_SUB:
-            set_bit(d, c.specials[0]
-                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0]
-                    ? REG(d, c.values[0]) : c.values[0]) - get_bit(d, c.specials[1]
-                    ? REG(d, c.values[1]) : c.values[1]));
+            set_bit(d, c.specials[0] & TAG_RESERVED
+                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0] & TAG_RESERVED
+                    ? REG(d, c.values[0]) : c.values[0]) - (c.specials[1] & TAG_ARGUMENT
+                    ? arguments[c.values[1]] : c.specials[1] & TAG_REFERENCE
+                        ? get_bit(d, c.specials[1] & TAG_RESERVED
+                            ? REG(d, c.values[1]) : c.values[1]) : c.values[1]));
             d->pointer++;
             return true;
         case OP_MUL:
-            set_bit(d, c.specials[0]
-                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0]
-                    ? REG(d, c.values[0]) : c.values[0]) * get_bit(d, c.specials[1]
-                    ? REG(d, c.values[1]) : c.values[1]));
+            set_bit(d, c.specials[0] & TAG_RESERVED
+                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0] & TAG_RESERVED
+                    ? REG(d, c.values[0]) : c.values[0]) * (c.specials[1] & TAG_ARGUMENT
+                    ? arguments[c.values[1]] : c.specials[1] & TAG_REFERENCE
+                        ? get_bit(d, c.specials[1] & TAG_RESERVED
+                            ? REG(d, c.values[1]) : c.values[1]) : c.values[1]));
             d->pointer++;
             return true;
         case OP_DIV:
-            set_bit(d, c.specials[0]
-                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0]
-                    ? REG(d, c.values[0]) : c.values[0]) / get_bit(d, c.specials[1]
-                    ? REG(d, c.values[1]) : c.values[1]));
+            set_bit(d, c.specials[0] & TAG_RESERVED
+                ? REG(d, c.values[0]) : c.values[0], get_bit(d, c.specials[0] & TAG_RESERVED
+                    ? REG(d, c.values[0]) : c.values[0]) / (c.specials[1] & TAG_ARGUMENT
+                    ? arguments[c.values[1]] : c.specials[1] & TAG_REFERENCE
+                        ? get_bit(d, c.specials[1] & TAG_RESERVED
+                            ? REG(d, c.values[1]) : c.values[1]) : c.values[1]));
             d->pointer++;
             return true;
         case OP_M:
@@ -315,5 +330,4 @@ int process_algorithm(driver *d, list *a, int arguments[], bool echo) {
     if(echo) printf("Algorithm finished with return code %i.\n", d->cregs[REG(d, 1)]);
     return d->cregs[REG(d, 1)];
 }
-
 #endif

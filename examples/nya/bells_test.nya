@@ -1,0 +1,16 @@
+/*
+ * This is the "Bell's Test". You can run it with `nyancat examples/bells_test 100`.
+ * It "tests" qubits and outputs how many of "i" qubits were measured "1".
+ */
+
+< max >     // Declares the number of iterations
+For         // Declares a label for looping
+cmp 0! max  // Checks if the "for loop" is completed
+je End      // If it is, jumps to end
+h 0?        // Hadamards the qubit
+m 0?        // Measures the qubit
+add 1! [0%] // Adds the measurement result to the counter register (1!)
+add 0! 1    // Increments the counter (the "i" variable)
+jmp For     // Goes to the beginning of the loop
+End         // Declares a label for ending the function
+end [1!]    // Outputs the amount of 1 qubits

@@ -5,7 +5,7 @@
 # Welcome to nyancat!
 **nyancat Algorithm Runner** is a C library that allows you to *simulate a quantum processor* and easily *write machine code for it!*
 
-The latest stable version available for the [nyancat Algorithm Runner (nAR)](https://github.com/thzoid/nyancat/releases) supports **nyancat H**. You can download this and previous versions on the "Releases" tab.
+The latest stable version available for the [nyancat Algorithm Runner (nAR)](https://github.com/thzoid/nyancat/releases) supports **nyancat He**. You can download this and previous versions on the "Releases" tab.
 
 You can either run simple isolated quantum algorithms with `nyancat.exe` or integrate many algorithms into a C project and make more complete computations.
 
@@ -133,32 +133,41 @@ As mentioned, every task will ask for at least one parameter. However, because o
 
 #### Explicit Parameters
 
-Explicit parameters are the values we pass to a task by writing them into the front of the task's name. Tasks ask for specific parameters types (pointers, values, labels, etc.) in a specific order. You can check out every available task and their parameters on the [tasks table](#All-of-them) below.
+Explicit parameters are the values we pass to a task by writing them right after the task's name. Tasks ask for specific parameters types (pointers, values, labels, etc.) in a specific order. You can check out every available task and their parameters on the [tasks table](#All-of-them) below.
+
+##### References
+
+You can directly pass values contained on classical registers (reserved or not) with a value reference notation, using the following syntax:
+
+`[0!]`
+
+Where `0` is the classical register ID that you want to reference. This can be used to pass a variable or an unknown-at-build-time value as a parameter to some task. It will work just like a hard typed numeric constant or an argument.
 
 #### Implicit Parameters
 
 These are the invisible parameters, but unfortunately, it has actually nothing to do with quantum magic. Some tasks are intended to have not much more than one way of being used. That's why, to avoid redundant code, some tasks have implicit parameters. They read the value on the TRR (`0%`), which is usually the return value of a previous task.
 
-If you want a task to read a specific value as an implicit parameter, you'll have to force that behavior by using `put` to store the desired value into the `0%` register. However, that's not a very common situation. Double check your code, mate!
+If you want a task to read a specific value as an implicit parameter, you'll have to force that behavior by using `mov` to store the desired value into the `0%` register. However, that's not a very common situation. Double check your code, mate!
 
 ### All of them
 
 | Name | Description                                                                               | Explicit Parameters                   | Inputs from TRR | Outputs to TRR |
 |------|-------------------------------------------------------------------------------------------|---------------------------------------|-----------------|----------------|
-| end  | Moves the value of the classical register to the ARR.                                     | classical_pointer                     | No              | No             |
-| mov  | Moves a value from the second classical register to the first one.                        | classical_pointer1 classical_pointer2 | No              | No             |
-| put  | Inserts the provided value into the specified classical register.                         | classical_pointer value               | No              | No             |
-| cmp  | Compares the provided value with the TRR value and returns the result.                    | value                                 | Yes             | Yes            |
+| end  | Moves the specified value to the ARR.                                     | value                     | No              | No             |
+| mov  | Sets the value of the classical register referenced by the provided pointer.                        | classical_pointer value | No              | No             |
+| ~~put~~  | ~~Inserts the provided value into the specified classical register.~~                         | ~~classical_pointer value~~               | ~~No~~              | ~~No~~             |
+| cmp  | Compares the provided value with the classical register associated by the provided pointer and returns the result.                    | value                                 | No             | Yes            |
+| jmp   | Immediately jumps to a specified label.                        | label                                 | No             | No             |
 | je   | Jumps to a specified label if a previous `cmp` outputted equality.                        | label                                 | Yes             | No             |
 | jne  | Jumps to a specified label if a previous `cmp` outputted inequality.                      | label                                 | Yes             | No             |
 | jg   | Jumps to a specified label if a previous `cmp` outputted positive difference.             | label                                 | Yes             | No             |
 | jge  | Jumps to a specified label if a previous `cmp` outputted equality or positive difference. | label                                 | Yes             | No             |
 | jl   | Jumps to a specified label if a previous `cmp` outputted negative difference.             | label                                 | Yes             | No             |
 | jle  | Jumps to a specified label if a previous `cmp` outputted equality or negative difference. | label                                 | Yes             | No             |
-| add    | Adds the value of the second pointer to the first one.                           | classical_pointer1 classical_pointer2                       | No              | No            |
-| sub    | Subtracts the value of the second pointer to the first one.                           | classical_pointer1 classical_pointer2                       | No              | No            |
-| mul    | Multiplies the value of the second pointer to the first one.                           | classical_pointer1 classical_pointer2                       | No              | No            |
-| div    | Divides (floor) the value of the second pointer to the first one.                           | classical_pointer1 classical_pointer2                       | No              | No            |
+| add    | Adds the value of the classical register associated with the provided pointer to the provided value.                           | classical_pointer value                       | No              | No            |
+| sub    | Subtracts the value of the classical register associated with the provided pointer to the provided value.                           | classical_pointer value                       | No              | No            |
+| mul    | Multiplies the value of the classical register associated with the provided pointer to the provided value.                           | classical_pointer value                       | No              | No            |
+| div    | Divides (floor) the value of the classical register associated with the provided pointer to the provided value.                   | No              | No            | No
 | m    | Measures the specified quantum register and returns the result.                           | quantum_pointer                       | No              | Yes            |
 | h    | Performs the Hadamard gate on the specified quantum register.                             | quantum_pointer                       | No              | No             |
 | x    | Performs the Pauli's X gate on the specified quantum register.                            | quantum_pointer                       | No              | No             |
@@ -173,7 +182,7 @@ Here is a simple quantum hello world made of two files:
 ```
 h 0?
 m 0?
-end 0%
+end [0%]
 ```
 ---
 `hello_world.c`:
@@ -196,7 +205,7 @@ Let's start by analyzing the quantum code. All we do in that file is to perform 
 
 On the C code, we allocate a driver that has 1 quantum register (we only need that one qubit) and 0 classical registers (we're not doing any classical operation with registers on our `.nya` code). Then, we load the script into a `qscript` structure, which cointains the parsed script itself and the minimum count of classical and quantum registers that must be allocated in order to that algorithm work (yes, we can input these on the driver's "constructor", and you should do this if your purpose is to run one algorithm only).
 
-Then, we get the result of our computation by calling `process_simple_algorithm()` and store it in an `int`. You may ask: "Why is this considered a simple algorithm?". Well, you may want to call this function when your quantum algorithms doesn't need any arguments to be passed in (this function still passes arguments though, but they are all set to `0`). If you need to pass some information to your quantum code, you may want to use `process_algorithm()`.
+Then, we get the result of our computation by calling `process_simple_algorithm()` and store it in an `int`. You may ask: "Why is this considered a simple algorithm?". Well, you may want to call this function when your quantum algorithms don't need any arguments to be passed in (this function still passes arguments though, but they are all set to `0`). If you need to pass some information to your quantum code, you may want to use `process_algorithm()`.
 
 And the last step is printing a different message depending on the result that we've got, which in this case, can only be `0` or `1`.
 

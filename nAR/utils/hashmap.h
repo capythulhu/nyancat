@@ -143,7 +143,6 @@ bool put_val_on_hashmap(hashmap *h, char *key, int val) {
     if(!h) return false;
     
     hashnode *temp = h->first;
-
     while(temp) {
         if(strcmp(temp->key, key) == 0) return false;
         temp = temp->next;
