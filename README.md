@@ -7,7 +7,7 @@
 
 The latest stable version available for [nyancat Algorithm Runner (nAR)](https://github.com/thzoid/nyancat/releases) supports **nyancat He**, which is also the latest version of the language.
 
-You can either download the nAR executable file (`nyancat.exe`) and run simple, isolated quantum algorithms, or download the source code to be able to integrate many algorithms with C code and make more complex computations!
+You can either download the nAR executable file (`nyancat.exe`) from the "Releases" tab and run simple, isolated quantum algorithms, or download the source code to be able to integrate many algorithms with C code and make more complex computations!
 
 :warning: Please note that this library _only simulates a QPU (Quantum Processing Unit)_. You shouldn't expect it neither to be more performatic than classical computing nor to compile code that would run on a real quantum processor. This library has it's own (simplified) processor architecture implementation.
 
@@ -211,3 +211,6 @@ And the last step is printing a different message depending on the result that w
 
 The `false` parameters on those two functions are the `echo` parameter, which is a used to activate (or not) the driver messages. As we want to display our own messages, we've set them to `false` on this example.
 
+# Credits
+
+Original cat image by Creative Stall from the Noun Project.
